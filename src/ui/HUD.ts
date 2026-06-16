@@ -39,7 +39,7 @@ export class HUD {
       ]),
       el('div', {
         class: 'hud-hint',
-        text: 'WASD — yurish · Sichqoncha — qarash · C — kamera · P — telefon · Esc — menyu · F5 — saqlash'
+        text: 'WASD yurish · E ishlatish · I inventar · C kamera · P telefon · Esc menyu · F5 saqlash'
       })
     ])
     parent.appendChild(this.root)

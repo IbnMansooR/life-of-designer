@@ -1,9 +1,11 @@
 // Game — in-game orkestratori.
-// Dunyo, o'yinchi, HUD, telefon, vaqt va save tizimini bir-biriga bog'laydi.
-import { World } from '../world/World'
+// Dunyo, o'yinchi, HUD, telefon, inventar, interaksiya, vaqt va save tizimini bog'laydi.
+import { World, type Interactable } from '../world/World'
 import { Player } from '../world/Player'
 import { HUD } from '../ui/HUD'
 import { Phone } from '../ui/Phone'
+import { Inventory } from '../ui/Inventory'
+import { InteractPrompt } from '../ui/InteractPrompt'
 import { GameLoop } from '../core/GameLoop'
 import { GameState, type SerializedGame } from './GameState'
 import { saveGame, loadGame } from '../core/Save'
@@ -21,10 +23,13 @@ export class Game {
   private player: Player
   private hud: HUD
   private phone: Phone
+  private inventory: Inventory
+  private interactPrompt: InteractPrompt
   private loop: GameLoop
   private pauseEl: HTMLElement
   private paused = false
   private disposed = false
+  private current: Interactable | null = null
   private unsub: Array<() => void> = []
   private keyHandler: (e: KeyboardEvent) => void
 
@@ -34,13 +39,15 @@ export class Game {
     private cb: GameCallbacks
   ) {
     this.world = new World(root)
-    this.player = new Player(this.world.renderer.domElement)
+    this.player = new Player(this.world.renderer.domElement, gs.appearance)
     this.player.position.set(gs.position.x, gs.position.y, gs.position.z)
     this.player.yaw = gs.rotationY
     this.world.scene.add(this.player.mesh)
 
     this.hud = new HUD(root)
     this.phone = new Phone(root)
+    this.inventory = new Inventory(root)
+    this.interactPrompt = new InteractPrompt(root)
     this.pauseEl = this.buildPause()
     root.appendChild(this.pauseEl)
 
@@ -56,6 +63,7 @@ export class Game {
 
   start(): void {
     this.hud.update(this.gs)
+    this.phone.update(this.gs)
     this.loop.start()
     showToast(`Xush kelibsan, ${this.gs.name}!`)
   }
@@ -72,9 +80,31 @@ export class Game {
         z: this.player.position.z
       }
       this.gs.rotationY = this.player.yaw
+
+      if (this.player.enabled) this.updateInteraction()
+      else this.interactPrompt.hide()
     }
     this.world.render(this.player.camera)
     this.hud.update(this.gs)
+    this.phone.update(this.gs)
+  }
+
+  /** Eng yaqin interaksiya zonasini topadi va promptni ko'rsatadi. */
+  private updateInteraction(): void {
+    let nearest: Interactable | null = null
+    let best = Infinity
+    const px = this.player.position.x
+    const pz = this.player.position.z
+    for (const it of this.world.interactables) {
+      const d = Math.hypot(px - it.x, pz - it.z)
+      if (d <= it.radius && d < best) {
+        best = d
+        nearest = it
+      }
+    }
+    this.current = nearest
+    if (nearest) this.interactPrompt.show(nearest.label)
+    else this.interactPrompt.hide()
   }
 
   private onKey(e: KeyboardEvent): void {
@@ -84,6 +114,12 @@ export class Game {
         break
       case 'KeyP':
         this.togglePhone()
+        break
+      case 'KeyI':
+        this.toggleInventory()
+        break
+      case 'KeyE':
+        this.interact()
         break
       case 'Escape':
         this.togglePause()
@@ -99,9 +135,74 @@ export class Game {
     }
   }
 
+  private interact(): void {
+    if (this.paused || !this.player.enabled || !this.current) return
+    switch (this.current.action) {
+      case 'sleep':
+        this.doSleep()
+        break
+      case 'work':
+        this.doWork()
+        break
+      case 'eat':
+        this.doEat()
+        break
+    }
+  }
+
+  private doSleep(): void {
+    const cur = this.gs.time.totalMinutes % 1440
+    let delta = 7 * 60 - cur
+    if (delta <= 0) delta += 1440
+    this.gs.time.advance(delta)
+    const n = this.gs.needs
+    n.energy = 100
+    n.stress -= 25
+    n.mood += 8
+    n.hunger += 20
+    this.gs.clampNeeds()
+    showToast('😴 Yaxshi uxlading — energiya to‘ldi')
+  }
+
+  private doWork(): void {
+    if (this.gs.needs.energy < 12) {
+      showToast('Juda charchagansan — avval uxla')
+      return
+    }
+    this.gs.time.advance(180) // 3 soat
+    const skill = this.gs.skills.design
+    const pay = Math.round(80000 + skill * 4000)
+    this.gs.addMoney(pay)
+    this.gs.skills.design = Math.min(100, skill + 2)
+    const n = this.gs.needs
+    n.energy -= 18
+    n.stress += 10
+    n.hunger += 12
+    this.gs.clampNeeds()
+    showToast(`💻 Ish bajarildi · +${formatMoney(pay)} so'm · dizayn +2`)
+  }
+
+  private doEat(): void {
+    this.gs.time.advance(20)
+    const n = this.gs.needs
+    n.hunger -= 45
+    n.mood += 5
+    n.energy += 5
+    this.gs.clampNeeds()
+    showToast('🍽️ Qorin to‘ydi')
+  }
+
   private togglePhone(): void {
     if (this.paused) return
+    this.inventory.close()
     const open = this.phone.toggle()
+    this.setInteractive(!open)
+  }
+
+  private toggleInventory(): void {
+    if (this.paused) return
+    this.phone.close()
+    const open = this.inventory.toggle(this.gs.inventory)
     this.setInteractive(!open)
   }
 
@@ -110,6 +211,8 @@ export class Game {
     this.pauseEl.classList.toggle('hidden', !this.paused)
     if (this.paused) {
       this.phone.close()
+      this.inventory.close()
+      this.interactPrompt.hide()
       this.setInteractive(false)
     } else {
       this.setInteractive(true)
@@ -172,7 +275,15 @@ export class Game {
     this.player.dispose()
     this.hud.dispose()
     this.phone.dispose()
+    this.inventory.dispose()
+    this.interactPrompt.dispose()
     this.pauseEl.remove()
     this.world.dispose()
   }
+}
+
+function formatMoney(v: number): string {
+  return Math.round(v)
+    .toString()
+    .replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
 }

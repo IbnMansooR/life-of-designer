@@ -11,10 +11,21 @@ export interface BoxCollider {
   maxZ: number
 }
 
+/** Interaksiya zonasi — o'yinchi yaqinlashganda E bilan ishlatadi. */
+export interface Interactable {
+  id: string
+  label: string
+  action: 'sleep' | 'work' | 'eat'
+  x: number
+  z: number
+  radius: number
+}
+
 export class World {
   readonly scene = new THREE.Scene()
   readonly renderer: THREE.WebGLRenderer
   readonly colliders: BoxCollider[] = []
+  readonly interactables: Interactable[] = []
   private sun!: THREE.DirectionalLight
 
   constructor(private readonly container: HTMLElement) {
@@ -135,7 +146,32 @@ export class World {
     monitor.position.set(2.4, 1.45, -13.3)
     group.add(monitor)
 
+    // Oshxona stoli
+    const counter = new THREE.Mesh(
+      new THREE.BoxGeometry(2, 0.9, 0.6),
+      new THREE.MeshStandardMaterial({ color: 0x9aa3b2, roughness: 0.7 })
+    )
+    counter.position.set(2.5, 0.45, -8)
+    counter.castShadow = true
+    group.add(counter)
+
+    // Muzlatgich
+    const fridge = new THREE.Mesh(
+      new THREE.BoxGeometry(0.7, 1.8, 0.7),
+      new THREE.MeshStandardMaterial({ color: 0xdfe6ef, roughness: 0.4, metalness: 0.2 })
+    )
+    fridge.position.set(3.4, 0.9, -8.3)
+    fridge.castShadow = true
+    group.add(fridge)
+
     this.scene.add(group)
+
+    // Interaksiya zonalari (Part 9: basic life loop — uxlash/ishlash/ovqatlanish)
+    this.interactables.push(
+      { id: 'bed', label: 'Uxlash', action: 'sleep', x: -2.5, z: -12, radius: 1.9 },
+      { id: 'desk', label: 'Ishlash (dizayn)', action: 'work', x: 2.4, z: -13, radius: 1.9 },
+      { id: 'kitchen', label: 'Ovqatlanish', action: 'eat', x: 2.5, z: -8, radius: 1.8 }
+    )
   }
 
   /** Ko'cha bo'ylab binolar — shahar bloki hissi. */

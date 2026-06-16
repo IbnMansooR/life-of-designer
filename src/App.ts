@@ -16,7 +16,7 @@ export class App {
       onContinue: () => void this.continueGame()
     })
     this.creator = new CharacterCreate(root, {
-      onStart: (name, fam) => this.startGame(GameState.newGame(name, fam)),
+      onStart: (name, fam, appearance) => this.startGame(GameState.newGame(name, fam, appearance)),
       onBack: () => {
         this.creator.hide()
         this.launcher.show()

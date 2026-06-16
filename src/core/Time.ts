@@ -21,21 +21,25 @@ export class GameTime {
   /** Har kadrda chaqiriladi. dt — real sekundlar. */
   update(dt: number): void {
     if (this.speed <= 0) return
-    const before = this.totalMinutes
-    this.totalMinutes += dt * this.minutesPerRealSecond * this.speed
+    this.addMinutes(dt * this.minutesPerRealSecond * this.speed)
+  }
 
-    const beforeHour = Math.floor(before / 60)
-    const afterHour = Math.floor(this.totalMinutes / 60)
-    if (afterHour > beforeHour) {
+  /** Vaqtni darhol N game-daqiqaga oldinga suradi (uxlash/ishlash kabi harakatlar). */
+  advance(minutes: number): void {
+    if (minutes <= 0) return
+    this.addMinutes(minutes)
+  }
+
+  private addMinutes(delta: number): void {
+    const before = this.totalMinutes
+    this.totalMinutes += delta
+
+    if (Math.floor(this.totalMinutes / 60) > Math.floor(before / 60)) {
       bus.emit(GameEvents.NewHour, this.hour)
     }
-
-    const beforeDay = Math.floor(before / MINUTES_PER_DAY)
-    const afterDay = Math.floor(this.totalMinutes / MINUTES_PER_DAY)
-    if (afterDay > beforeDay) {
+    if (Math.floor(this.totalMinutes / MINUTES_PER_DAY) > Math.floor(before / MINUTES_PER_DAY)) {
       bus.emit(GameEvents.NewDay, this.day)
     }
-
     bus.emit(GameEvents.TimeTick, this.totalMinutes)
   }
 

@@ -53,6 +53,8 @@ Natija: `release/LifeOfDesigner.exe` — o'rnatishsiz, ikki marta bosib ochiladi
 | `W A S D` | Yurish |
 | `Shift` | Yugurish |
 | Sichqoncha | Qarash (kanvasga bosib pointer lock) |
+| `E` | Ishlatish (uxlash / ishlash / ovqatlanish) |
+| `I` | Inventar |
 | `C` | 1-shaxs / 3-shaxs kamera |
 | `P` | Telefon |
 | `Esc` | Pauza / menyu |
@@ -80,7 +82,7 @@ Prinsip: **gameplay logikasi grafikadan mustaqil** — har bir tizim alohida mod
 ## Roadmap (Master Prompt Part 7)
 
 - [x] **Phase 1 — Core Foundation:** launcher, save, vaqt, asosiy UI, 3D sahna
-- [ ] **Phase 2 — Player System:** qahramon yaratish (kengaytirilgan), inventar, telefon ilovalari
+- [x] **Phase 2 — Player System:** tashqi ko'rinish (teri/soch/kiyim), inventar, interaksiya (uxlash/ishlash/ovqatlanish), jonli telefon (balans/xabar/kontakt)
 - [ ] **Phase 3 — Basic City:** kengaytirilgan shahar, yo'llar, transport, NPC
 - [ ] **Phase 4 — Life Simulation:** ehtiyojlar, uyqu/ovqat, oila, munosabatlar
 - [ ] **Phase 5 — Designer Career:** o'qish, ish, freelance, mijoz, portfolio

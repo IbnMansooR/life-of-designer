@@ -3,6 +3,7 @@
 // binolar va devorlarga oddiy kolliziya.
 import * as THREE from 'three'
 import type { BoxCollider } from './World'
+import type { Appearance } from '../data/appearance'
 
 export type ViewMode = 'first' | 'third'
 
@@ -46,28 +47,51 @@ export class Player {
     this.pitch = Math.max(-1.2, Math.min(1.2, this.pitch))
   }
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement, appearance: Appearance) {
     this.canvas = canvas
     this.camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 500)
-
-    // 3-shaxsdagi ko'rinadigan tana
-    this.mesh = new THREE.Group()
-    const body = new THREE.Mesh(
-      new THREE.CapsuleGeometry(PLAYER_RADIUS, 1.0, 6, 14),
-      new THREE.MeshStandardMaterial({ color: 0x5b8cff })
-    )
-    body.position.y = 1.0
-    body.castShadow = true
-    this.mesh.add(body)
-    const head = new THREE.Mesh(
-      new THREE.SphereGeometry(0.28, 16, 16),
-      new THREE.MeshStandardMaterial({ color: 0xe8c7a0 })
-    )
-    head.position.y = 1.75
-    head.castShadow = true
-    this.mesh.add(head)
-
+    this.mesh = this.buildBody(appearance)
     this.bindInput()
+  }
+
+  /** 3-shaxsdagi ko'rinadigan tanani tashqi ko'rinishdan quradi. */
+  private buildBody(a: Appearance): THREE.Group {
+    const g = new THREE.Group()
+
+    const legs = new THREE.Mesh(
+      new THREE.CapsuleGeometry(0.28, 0.5, 4, 12),
+      new THREE.MeshStandardMaterial({ color: a.pants })
+    )
+    legs.position.y = 0.5
+    legs.castShadow = true
+    g.add(legs)
+
+    const torso = new THREE.Mesh(
+      new THREE.CapsuleGeometry(PLAYER_RADIUS, 0.6, 6, 14),
+      new THREE.MeshStandardMaterial({ color: a.shirt })
+    )
+    torso.position.y = 1.15
+    torso.castShadow = true
+    g.add(torso)
+
+    const head = new THREE.Mesh(
+      new THREE.SphereGeometry(0.27, 18, 18),
+      new THREE.MeshStandardMaterial({ color: a.skin })
+    )
+    head.position.y = 1.78
+    head.castShadow = true
+    g.add(head)
+
+    // Soch — boshning ustki qismini qoplaydigan yarim shar
+    const hair = new THREE.Mesh(
+      new THREE.SphereGeometry(0.29, 18, 18, 0, Math.PI * 2, 0, Math.PI * 0.62),
+      new THREE.MeshStandardMaterial({ color: a.hair })
+    )
+    hair.position.y = 1.8
+    hair.castShadow = true
+    g.add(hair)
+
+    return g
   }
 
   private bindInput(): void {

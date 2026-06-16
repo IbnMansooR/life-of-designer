@@ -3,6 +3,8 @@
 import { GameTime } from '../core/Time'
 import { bus, GameEvents } from '../core/EventBus'
 import { getFamily } from '../data/families'
+import { type Appearance, DEFAULT_APPEARANCE } from '../data/appearance'
+import { STARTING_ITEMS } from '../data/items'
 
 export interface Needs {
   energy: number // 0..100 (uyqu/charchoq)
@@ -17,13 +19,20 @@ export interface Vec3 {
   z: number
 }
 
+export interface Skills {
+  design: number // 0..100 — dizayn mahorati
+}
+
 export interface SerializedGame {
   version: number
   createdAt: string
   name: string
   familyId: string
+  appearance: Appearance
   money: number
   needs: Needs
+  skills: Skills
+  inventory: string[]
   timeMinutes: number
   position: Vec3
   rotationY: number
@@ -34,20 +43,26 @@ const SAVE_VERSION = 1
 export class GameState {
   name = 'Dizayner'
   familyId = 'mother_only'
+  appearance: Appearance = { ...DEFAULT_APPEARANCE }
   money = 0
   needs: Needs = { energy: 90, hunger: 15, stress: 30, mood: 70 }
+  skills: Skills = { design: 0 }
+  inventory: string[] = [...STARTING_ITEMS]
   time = new GameTime()
   position: Vec3 = { x: 0, y: 0, z: 0 }
   rotationY = 0
 
-  /** Yangi o'yin: ism + oilaviy holat asosida boshlang'ich qiymatlarni o'rnatadi. */
-  static newGame(name: string, familyId: string): GameState {
+  /** Yangi o'yin: ism + oilaviy holat + ko'rinish asosida boshlang'ich qiymatlar. */
+  static newGame(name: string, familyId: string, appearance: Appearance): GameState {
     const gs = new GameState()
     const fam = getFamily(familyId)
     gs.name = name.trim() || 'Dizayner'
     gs.familyId = familyId
+    gs.appearance = { ...appearance }
     gs.money = fam.startMoney
     gs.needs = { energy: 90, hunger: 15, stress: fam.startStress, mood: 70 }
+    gs.skills = { design: 0 }
+    gs.inventory = [...STARTING_ITEMS]
     gs.time = new GameTime()
     gs.position = { x: 0, y: 0, z: 2 }
     gs.rotationY = 0
@@ -84,8 +99,11 @@ export class GameState {
       createdAt: new Date().toISOString(),
       name: this.name,
       familyId: this.familyId,
+      appearance: { ...this.appearance },
       money: this.money,
       needs: { ...this.needs },
+      skills: { ...this.skills },
+      inventory: [...this.inventory],
       timeMinutes: this.time.totalMinutes,
       position: { ...this.position },
       rotationY: this.rotationY
@@ -96,13 +114,26 @@ export class GameState {
     const gs = new GameState()
     gs.name = data.name
     gs.familyId = data.familyId
+    gs.appearance = { ...DEFAULT_APPEARANCE, ...(data.appearance ?? {}) }
     gs.money = data.money
     gs.needs = { ...data.needs }
+    gs.skills = { design: data.skills?.design ?? 0 }
+    gs.inventory = data.inventory ? [...data.inventory] : [...STARTING_ITEMS]
     gs.time = new GameTime()
     gs.time.totalMinutes = data.timeMinutes
     gs.position = { ...data.position }
     gs.rotationY = data.rotationY ?? 0
     return gs
+  }
+
+  /** Ehtiyojlarni 0..100 oralig'ida ushlab turadi va hodisani chiqaradi. */
+  clampNeeds(): void {
+    const n = this.needs
+    n.energy = clamp(n.energy)
+    n.hunger = clamp(n.hunger)
+    n.stress = clamp(n.stress)
+    n.mood = clamp(n.mood)
+    bus.emit(GameEvents.NeedsChanged, n)
   }
 }
 
