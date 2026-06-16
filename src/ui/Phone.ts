@@ -1,6 +1,7 @@
-// Telefon — endi haqiqiy o'yin ma'lumotlari bilan ishlaydi (Part 5).
+// Telefon — Phase 4: oila bilan haqiqiy aloqa (qo'ng'iroq, pul yuborish), dinamik xabarlar.
 import { el } from './dom'
 import type { GameState } from '../game/GameState'
+import { getFamilyMembers } from '../data/families'
 
 interface AppDef {
   id: string
@@ -9,7 +10,7 @@ interface AppDef {
 }
 
 const APPS: AppDef[] = [
-  { id: 'calls', name: 'Qo‘ng‘iroq', icon: '📞' },
+  { id: 'calls', name: 'Oila', icon: '📞' },
   { id: 'messages', name: 'Xabarlar', icon: '💬' },
   { id: 'bank', name: 'Bank', icon: '🏦' },
   { id: 'map', name: 'Xarita', icon: '🗺️' },
@@ -18,17 +19,7 @@ const APPS: AppDef[] = [
   { id: 'settings', name: 'Sozlama', icon: '⚙️' }
 ]
 
-// Oilaviy holatga qarab qo'shimcha kontaktlar.
-const FAMILY_MEMBERS: Record<string, string[]> = {
-  mother_sister: ['Ona', 'Singil'],
-  mother_brother: ['Ona', 'Aka'],
-  mother_father: ['Ona', 'Ota'],
-  mother_only: ['Ona'],
-  father_only: ['Ota'],
-  big_family: ['Ona', 'Ota', 'Aka', 'Singil'],
-  relatives: ['Amma', 'Tog‘a'],
-  complex: ['Ona']
-}
+const SEND_AMOUNTS = [100_000, 500_000]
 
 function formatMoney(v: number): string {
   return Math.round(v)
@@ -43,6 +34,7 @@ export class Phone {
   private appBody: HTMLElement
   private statusClock: HTMLElement
   private gs: GameState | null = null
+  private currentAppId: string | null = null
   isOpen = false
 
   constructor(parent: HTMLElement) {
@@ -70,65 +62,39 @@ export class Phone {
     this.statusClock = el('span', { text: '07:00' })
 
     this.root = el('div', { class: 'phone' }, [
-      el('div', { class: 'phone-status' }, [
-        el('span', { text: 'Designer Phone' }),
-        this.statusClock
-      ]),
+      el('div', { class: 'phone-status' }, [el('span', { text: 'Designer Phone' }), this.statusClock]),
       el('div', { class: 'phone-screen' }, [grid, this.appView]),
       el('div', { class: 'phone-home-indicator' })
     ])
     parent.appendChild(this.root)
   }
 
-  /** Har kadrda — soatni yangilab turadi. */
   update(gs: GameState): void {
     this.gs = gs
     this.statusClock.textContent = gs.time.clock
   }
 
   private openApp(a: AppDef): void {
+    this.currentAppId = a.id
     this.appTitle.textContent = a.name
     this.appBody.replaceChildren(...this.renderApp(a.id))
     this.appView.classList.add('show')
   }
 
+  /** Amaldan keyin ochiq ilovani qayta chizadi (balans/aloqa yangilansin). */
+  private refresh(): void {
+    if (this.currentAppId) this.appBody.replaceChildren(...this.renderApp(this.currentAppId))
+  }
+
   private renderApp(id: string): Node[] {
     const gs = this.gs
     switch (id) {
+      case 'calls':
+        return this.renderFamily(gs)
       case 'bank':
-        return [
-          el('div', { class: 'bank-balance' }, [
-            el('div', { class: 'bank-label', text: 'Joriy balans' }),
-            el('div', { class: 'bank-amount', text: `${formatMoney(gs?.money ?? 0)} so'm` })
-          ]),
-          el('div', { class: 'bank-acc', text: 'Designer Bank · Asosiy hisob' }),
-          el('div', { class: 'ph-note', text: 'To‘lov, kredit va investitsiya keyingi bosqichda.' })
-        ]
-      case 'messages': {
-        const member = FAMILY_MEMBERS[gs?.familyId ?? 'mother_only']?.[0] ?? 'Ona'
-        return [
-          el('div', { class: 'chat' }, [
-            el('div', { class: 'chat-from', text: member }),
-            el('div', { class: 'bubble', text: 'Bolam, yetib oldingmi? O‘zingni ehtiyot qil.' }),
-            el('div', { class: 'bubble', text: 'Telefon qilib tur, sog‘inib qoldim.' })
-          ])
-        ]
-      }
-      case 'calls': {
-        const contacts = this.contacts()
-        return [
-          el(
-            'div',
-            { class: 'contact-list' },
-            contacts.map((c) =>
-              el('div', { class: 'contact' }, [
-                el('span', { class: 'contact-name', text: c }),
-                el('span', { class: 'contact-call', text: '📞' })
-              ])
-            )
-          )
-        ]
-      }
+        return this.renderBank(gs)
+      case 'messages':
+        return this.renderMessages(gs)
       case 'calendar':
         return [
           el('div', { class: 'cal-day', text: `${gs?.time.day ?? 1}-kun` }),
@@ -144,12 +110,87 @@ export class Phone {
     }
   }
 
-  private contacts(): string[] {
-    const fam = FAMILY_MEMBERS[this.gs?.familyId ?? 'mother_only'] ?? ['Ona']
-    return [...fam, 'Do‘st', 'Ish beruvchi', 'Mijoz']
+  private renderFamily(gs: GameState | null): Node[] {
+    const rel = Math.round(gs?.familyRelationship ?? 0)
+    const members = getFamilyMembers(gs?.familyId ?? 'mother_only')
+    const relFill = el('span')
+    relFill.style.width = `${rel}%`
+    relFill.style.background = rel > 50 ? 'var(--good)' : rel > 25 ? 'var(--warn)' : 'var(--bad)'
+
+    return [
+      el('div', { class: 'fam-status' }, [
+        el('div', { class: 'fam-rel-label', text: `Oila aloqasi: ${rel}/100` }),
+        el('div', { class: 'bar' }, [relFill]),
+        el('div', { class: 'ph-note', text: `Oxirgi aloqa: ${gs?.lastFamilyContactDay ?? 1}-kun` })
+      ]),
+      el(
+        'div',
+        { class: 'contact-list' },
+        members.map((name) =>
+          el('div', { class: 'contact' }, [
+            el('span', { class: 'contact-name', text: name }),
+            el('button', {
+              class: 'call-btn',
+              text: '📞 Qo‘ng‘iroq',
+              on: {
+                click: () => {
+                  gs?.contactFamily()
+                  this.refresh()
+                }
+              }
+            })
+          ])
+        )
+      ),
+      el('div', { class: 'ph-note', text: 'Muntazam aloqa — aloqa darajasini oshiradi.' })
+    ]
+  }
+
+  private renderBank(gs: GameState | null): Node[] {
+    return [
+      el('div', { class: 'bank-balance' }, [
+        el('div', { class: 'bank-label', text: 'Joriy balans' }),
+        el('div', { class: 'bank-amount', text: `${formatMoney(gs?.money ?? 0)} so'm` })
+      ]),
+      el('div', { class: 'bank-section' }, [
+        el('div', { class: 'bank-section-title', text: 'Oilaga pul yuborish' }),
+        el(
+          'div',
+          { class: 'send-row' },
+          SEND_AMOUNTS.map((amt) =>
+            el('button', {
+              class: 'send-btn',
+              text: `${formatMoney(amt)} so'm`,
+              on: {
+                click: () => {
+                  if (gs?.sendFamilyMoney(amt)) this.refresh()
+                }
+              }
+            })
+          )
+        )
+      ]),
+      el('div', { class: 'ph-note', text: 'Kredit va investitsiya — keyingi bosqichda.' })
+    ]
+  }
+
+  private renderMessages(gs: GameState | null): Node[] {
+    const member = getFamilyMembers(gs?.familyId ?? 'mother_only')[0]
+    const rel = gs?.familyRelationship ?? 70
+    const msgs =
+      rel < 50
+        ? ['Bolam, ko‘rinmay ketding, sog‘inib qoldim...', 'Telefoningga javob ber, xavotirdaman.']
+        : ['Bolam, yetib oldingmi? O‘zingni ehtiyot qil.', 'Telefon qilib tur, sog‘indim.']
+    return [
+      el('div', { class: 'chat' }, [
+        el('div', { class: 'chat-from', text: member }),
+        ...msgs.map((m) => el('div', { class: 'bubble', text: m }))
+      ])
+    ]
   }
 
   private closeApp(): void {
+    this.currentAppId = null
     this.appView.classList.remove('show')
   }
 

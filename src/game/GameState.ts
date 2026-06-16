@@ -33,6 +33,8 @@ export interface SerializedGame {
   needs: Needs
   skills: Skills
   inventory: string[]
+  familyRelationship: number
+  lastFamilyContactDay: number
   timeMinutes: number
   position: Vec3
   rotationY: number
@@ -48,6 +50,8 @@ export class GameState {
   needs: Needs = { energy: 90, hunger: 15, stress: 30, mood: 70 }
   skills: Skills = { design: 0 }
   inventory: string[] = [...STARTING_ITEMS]
+  familyRelationship = 70 // 0..100 — oila bilan aloqa darajasi
+  lastFamilyContactDay = 1
   time = new GameTime()
   position: Vec3 = { x: 0, y: 0, z: 0 }
   rotationY = 0
@@ -63,6 +67,8 @@ export class GameState {
     gs.needs = { energy: 90, hunger: 15, stress: fam.startStress, mood: 70 }
     gs.skills = { design: 0 }
     gs.inventory = [...STARTING_ITEMS]
+    gs.familyRelationship = 70
+    gs.lastFamilyContactDay = 1
     gs.time = new GameTime()
     gs.position = { x: 0, y: 0, z: 2 }
     gs.rotationY = 0
@@ -104,6 +110,8 @@ export class GameState {
       needs: { ...this.needs },
       skills: { ...this.skills },
       inventory: [...this.inventory],
+      familyRelationship: this.familyRelationship,
+      lastFamilyContactDay: this.lastFamilyContactDay,
       timeMinutes: this.time.totalMinutes,
       position: { ...this.position },
       rotationY: this.rotationY
@@ -119,6 +127,8 @@ export class GameState {
     gs.needs = { ...data.needs }
     gs.skills = { design: data.skills?.design ?? 0 }
     gs.inventory = data.inventory ? [...data.inventory] : [...STARTING_ITEMS]
+    gs.familyRelationship = data.familyRelationship ?? 70
+    gs.lastFamilyContactDay = data.lastFamilyContactDay ?? 1
     gs.time = new GameTime()
     gs.time.totalMinutes = data.timeMinutes
     gs.position = { ...data.position }
@@ -135,6 +145,46 @@ export class GameState {
     n.mood = clamp(n.mood)
     bus.emit(GameEvents.NeedsChanged, n)
   }
+
+  /** Oila bilan qo'ng'iroq — aloqa darajasi va kayfiyat oshadi (Part 1: telefon qilish). */
+  contactFamily(): void {
+    this.familyRelationship = clamp(this.familyRelationship + 9)
+    this.needs.mood = clamp(this.needs.mood + 6)
+    this.lastFamilyContactDay = this.time.day
+    this.time.advance(15)
+    bus.emit(GameEvents.Toast, 'Oila bilan gaplashding 💛 aloqa oshdi')
+    bus.emit(GameEvents.NeedsChanged, this.needs)
+  }
+
+  /** Oilaga pul yuborish — aloqa darajasi oshadi (Part 1: pul yuborish tizimi). */
+  sendFamilyMoney(amount: number): boolean {
+    if (this.money < amount) {
+      bus.emit(GameEvents.Toast, 'Mablag‘ yetarli emas')
+      return false
+    }
+    this.addMoney(-amount)
+    this.familyRelationship = clamp(this.familyRelationship + 13)
+    this.lastFamilyContactDay = this.time.day
+    this.needs.mood = clamp(this.needs.mood + 3)
+    bus.emit(GameEvents.Toast, `Oilaga ${formatSom(amount)} so'm yubording 💛`)
+    return true
+  }
+
+  /** Har yangi kunda — aloqasiz qolsa daraja pasayadi. neglected -> ogohlantirish kerak. */
+  applyDailyFamily(currentDay: number): { neglected: boolean } {
+    const daysSince = currentDay - this.lastFamilyContactDay
+    if (daysSince >= 2) {
+      this.familyRelationship = clamp(this.familyRelationship - 7)
+      this.needs.mood = clamp(this.needs.mood - 3)
+    }
+    return { neglected: daysSince >= 2 && this.familyRelationship < 55 }
+  }
+}
+
+function formatSom(v: number): string {
+  return Math.round(v)
+    .toString()
+    .replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
 }
 
 function clamp(v: number, min = 0, max = 100): number {

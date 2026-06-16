@@ -80,3 +80,20 @@ export const FAMILIES: FamilyOption[] = [
 export function getFamily(id: string): FamilyOption {
   return FAMILIES.find((f) => f.id === id) ?? FAMILIES[0]
 }
+
+// Oilaviy holatga qarab a'zolar (qo'ng'iroq/kontakt uchun). Birinchisi — asosiy (odatda Ona).
+export const FAMILY_MEMBERS: Record<string, string[]> = {
+  mother_sister: ['Ona', 'Singil'],
+  mother_brother: ['Ona', 'Aka'],
+  mother_father: ['Ona', 'Ota'],
+  mother_only: ['Ona'],
+  father_only: ['Ota'],
+  big_family: ['Ona', 'Ota', 'Aka', 'Singil'],
+  relatives: ['Amma', 'Tog‘a'],
+  complex: ['Ona']
+}
+
+export function getFamilyMembers(id: string): string[] {
+  return FAMILY_MEMBERS[id] ?? ['Ona']
+}
+

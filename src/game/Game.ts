@@ -58,7 +58,15 @@ export class Game {
     window.addEventListener('resize', this.onResize)
 
     this.unsub.push(bus.on(GameEvents.Toast, (m) => showToast(m as string)))
-    this.unsub.push(bus.on(GameEvents.NewDay, () => this.autoSave()))
+    this.unsub.push(bus.on(GameEvents.NewDay, (day) => this.onNewDay(day as number)))
+  }
+
+  private onNewDay(day: number): void {
+    const r = this.gs.applyDailyFamily(day)
+    void this.autoSave()
+    if (r.neglected) {
+      showToast('📞 Onang sog‘indi — telefon qilsang yaxshi bo‘lardi')
+    }
   }
 
   start(): void {

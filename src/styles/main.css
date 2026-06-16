@@ -799,6 +799,67 @@ button {
   margin-top: 4px;
 }
 
+/* Phase 4 — oila / bank telefon ichida */
+.fam-status {
+  margin-bottom: 14px;
+}
+
+.fam-rel-label {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.fam-status .bar {
+  height: 10px;
+}
+
+.call-btn {
+  background: var(--accent);
+  color: #fff;
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.call-btn:hover {
+  filter: brightness(1.1);
+}
+
+.bank-section {
+  margin-top: 6px;
+  margin-bottom: 10px;
+}
+
+.bank-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.send-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.send-btn {
+  flex: 1;
+  background: var(--panel-2);
+  border: 1px solid var(--accent);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 10px 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.send-btn:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
 /* ---------- Toast ---------- */
 .toast {
   position: absolute;
