@@ -83,6 +83,8 @@ export class Game {
 
       if (this.player.enabled) this.updateInteraction()
       else this.interactPrompt.hide()
+
+      this.world.update(dt, this.gs.time)
     }
     this.world.render(this.player.camera)
     this.hud.update(this.gs)

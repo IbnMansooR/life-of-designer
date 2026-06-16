@@ -83,7 +83,7 @@ Prinsip: **gameplay logikasi grafikadan mustaqil** — har bir tizim alohida mod
 
 - [x] **Phase 1 — Core Foundation:** launcher, save, vaqt, asosiy UI, 3D sahna
 - [x] **Phase 2 — Player System:** tashqi ko'rinish (teri/soch/kiyim), inventar, interaksiya (uxlash/ishlash/ovqatlanish), jonli telefon (balans/xabar/kontakt)
-- [ ] **Phase 3 — Basic City:** kengaytirilgan shahar, yo'llar, transport, NPC
+- [x] **Phase 3 — Basic City:** yo'l to'ri + trotuar, ko'p bino, harakatlanuvchi transport, yuruvchi NPC'lar, kun/tun sikli (chiroqlar tunda yonadi)
 - [ ] **Phase 4 — Life Simulation:** ehtiyojlar, uyqu/ovqat, oila, munosabatlar
 - [ ] **Phase 5 — Designer Career:** o'qish, ish, freelance, mijoz, portfolio
 - [ ] **Phase 6 — Business System:** agentlik, xodimlar, ofis
