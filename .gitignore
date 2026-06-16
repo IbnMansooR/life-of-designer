@@ -17,5 +17,8 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 
+# Claude Code lokal sozlamalari (mashina-spetsifik)
+.claude/settings.local.json
+
 # Local save files (agar repo ichida test save'lar paydo bo'lsa)
 /saves/
