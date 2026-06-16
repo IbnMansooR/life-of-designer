@@ -1,0 +1,48 @@
+{
+  "name": "life-of-designer",
+  "version": "0.1.0",
+  "description": "Life of Designer — chuqur 3D hayot simulyatsiyasi (offline desktop)",
+  "private": true,
+  "author": "IbnMansooR",
+  "main": "electron/main.cjs",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:app": "concurrently -k -n VITE,ELECTRON -c blue,green \"vite\" \"wait-on tcp:5173 && cross-env ELECTRON_DEV=1 electron electron/main.cjs\"",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "build:exe": "npm run build && electron-builder --win --x64"
+  },
+  "dependencies": {
+    "three": "^0.169.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.169.0",
+    "concurrently": "^9.0.1",
+    "cross-env": "^7.0.3",
+    "electron": "^33.0.2",
+    "electron-builder": "^25.1.8",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10",
+    "wait-on": "^8.0.1"
+  },
+  "build": {
+    "appId": "com.ibnmansoor.lifeofdesigner",
+    "productName": "Life of Designer",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*"
+    ],
+    "win": {
+      "target": [
+        "portable"
+      ]
+    },
+    "portable": {
+      "artifactName": "LifeOfDesigner.exe"
+    }
+  }
+}
