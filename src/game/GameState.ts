@@ -5,6 +5,7 @@ import { bus, GameEvents } from '../core/EventBus'
 import { getFamily } from '../data/families'
 import { type Appearance, DEFAULT_APPEARANCE } from '../data/appearance'
 import { STARTING_ITEMS } from '../data/items'
+import { type Project, type CareerLevel, generateJobs, careerLevel, COURSES } from '../data/jobs'
 
 export interface Needs {
   energy: number // 0..100 (uyqu/charchoq)
@@ -35,6 +36,11 @@ export interface SerializedGame {
   inventory: string[]
   familyRelationship: number
   lastFamilyContactDay: number
+  reputation: number
+  portfolio: number
+  completedProjects: number
+  availableJobs: Project[]
+  activeProjects: Project[]
   timeMinutes: number
   position: Vec3
   rotationY: number
@@ -52,6 +58,11 @@ export class GameState {
   inventory: string[] = [...STARTING_ITEMS]
   familyRelationship = 70 // 0..100 — oila bilan aloqa darajasi
   lastFamilyContactDay = 1
+  reputation = 10 // 0..100 — kasbiy obro'
+  portfolio = 0 // 0..100 — portfolio darajasi (karera bosqichini belgilaydi)
+  completedProjects = 0
+  availableJobs: Project[] = []
+  activeProjects: Project[] = []
   time = new GameTime()
   position: Vec3 = { x: 0, y: 0, z: 0 }
   rotationY = 0
@@ -69,6 +80,7 @@ export class GameState {
     gs.inventory = [...STARTING_ITEMS]
     gs.familyRelationship = 70
     gs.lastFamilyContactDay = 1
+    gs.availableJobs = generateJobs(4)
     gs.time = new GameTime()
     gs.position = { x: 0, y: 0, z: 2 }
     gs.rotationY = 0
@@ -112,6 +124,11 @@ export class GameState {
       inventory: [...this.inventory],
       familyRelationship: this.familyRelationship,
       lastFamilyContactDay: this.lastFamilyContactDay,
+      reputation: this.reputation,
+      portfolio: this.portfolio,
+      completedProjects: this.completedProjects,
+      availableJobs: this.availableJobs.map((j) => ({ ...j })),
+      activeProjects: this.activeProjects.map((j) => ({ ...j })),
       timeMinutes: this.time.totalMinutes,
       position: { ...this.position },
       rotationY: this.rotationY
@@ -129,6 +146,11 @@ export class GameState {
     gs.inventory = data.inventory ? [...data.inventory] : [...STARTING_ITEMS]
     gs.familyRelationship = data.familyRelationship ?? 70
     gs.lastFamilyContactDay = data.lastFamilyContactDay ?? 1
+    gs.reputation = data.reputation ?? 10
+    gs.portfolio = data.portfolio ?? 0
+    gs.completedProjects = data.completedProjects ?? 0
+    gs.availableJobs = data.availableJobs ? data.availableJobs.map((j) => ({ ...j })) : generateJobs(4)
+    gs.activeProjects = data.activeProjects ? data.activeProjects.map((j) => ({ ...j })) : []
     gs.time = new GameTime()
     gs.time.totalMinutes = data.timeMinutes
     gs.position = { ...data.position }
@@ -178,6 +200,90 @@ export class GameState {
       this.needs.mood = clamp(this.needs.mood - 3)
     }
     return { neglected: daysSince >= 2 && this.familyRelationship < 55 }
+  }
+
+  // ===== Karera / Freelance (Part 4) =====
+
+  get career(): CareerLevel {
+    return careerLevel(this.portfolio)
+  }
+
+  /** Ish takliflari kam bo'lsa yangilarini qo'shadi. */
+  ensureJobs(): void {
+    if (this.availableJobs.length < 3) {
+      this.availableJobs.push(...generateJobs(3 - this.availableJobs.length))
+    }
+  }
+
+  /** Ishni qabul qilish — faol loyihaga aylanadi (maks 3 ta). */
+  acceptJob(id: string): boolean {
+    if (this.activeProjects.length >= 3) {
+      bus.emit(GameEvents.Toast, 'Bir vaqtda ko‘pi bilan 3 ta loyiha')
+      return false
+    }
+    const idx = this.availableJobs.findIndex((j) => j.id === id)
+    if (idx < 0) return false
+    const [job] = this.availableJobs.splice(idx, 1)
+    job.progress = 0
+    this.activeProjects.push(job)
+    this.ensureJobs()
+    bus.emit(GameEvents.Toast, `Ish qabul qilindi: ${job.title}`)
+    return true
+  }
+
+  /** Loyiha ustida ishlash — progress oshadi, vaqt/energiya sarflanadi. */
+  workProject(id: string): void {
+    const job = this.activeProjects.find((j) => j.id === id)
+    if (!job) return
+    if (this.needs.energy < 12) {
+      bus.emit(GameEvents.Toast, 'Juda charchagansan — avval dam ol')
+      return
+    }
+    const gain = 22 + this.skills.design * 0.4 - job.difficulty * 3
+    job.progress = Math.min(100, job.progress + Math.max(10, gain))
+    this.skills.design = clamp(this.skills.design + 1.2)
+    this.needs.energy = clamp(this.needs.energy - 15)
+    this.needs.stress = clamp(this.needs.stress + 9)
+    this.needs.hunger = clamp(this.needs.hunger + 10)
+    this.time.advance(150)
+    bus.emit(GameEvents.Toast, `Ishlayapsan… ${Math.round(job.progress)}%`)
+    bus.emit(GameEvents.NeedsChanged, this.needs)
+  }
+
+  /** Tugagan loyihani topshirish — pul, reputatsiya, portfolio, skill. */
+  deliverProject(id: string): void {
+    const idx = this.activeProjects.findIndex((j) => j.id === id)
+    if (idx < 0) return
+    const job = this.activeProjects[idx]
+    if (job.progress < 100) {
+      bus.emit(GameEvents.Toast, 'Loyiha hali tugamagan')
+      return
+    }
+    this.activeProjects.splice(idx, 1)
+    this.completedProjects++
+    this.addMoney(job.budget)
+    this.reputation = clamp(this.reputation + 4 + job.difficulty * 3)
+    this.portfolio = clamp(this.portfolio + 2 + job.difficulty * 2)
+    this.skills.design = clamp(this.skills.design + 2)
+    this.needs.mood = clamp(this.needs.mood + 8)
+    bus.emit(GameEvents.Toast, `✅ Topshirildi! +${formatSom(job.budget)} so'm`)
+    bus.emit(GameEvents.NeedsChanged, this.needs)
+  }
+
+  /** Kurs sotib olish — dizayn mahorati oshadi (Part 4: learning system). */
+  buyCourse(courseId: string): void {
+    const course = COURSES.find((c) => c.id === courseId)
+    if (!course) return
+    if (this.money < course.cost) {
+      bus.emit(GameEvents.Toast, 'Mablag‘ yetarli emas')
+      return
+    }
+    this.addMoney(-course.cost)
+    this.skills.design = clamp(this.skills.design + course.skillGain)
+    this.needs.energy = clamp(this.needs.energy - 8)
+    this.time.advance(course.hours * 60)
+    bus.emit(GameEvents.Toast, `📚 ${course.name} — dizayn +${course.skillGain}`)
+    bus.emit(GameEvents.NeedsChanged, this.needs)
   }
 }
 

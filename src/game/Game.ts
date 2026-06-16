@@ -5,6 +5,7 @@ import { Player } from '../world/Player'
 import { HUD } from '../ui/HUD'
 import { Phone } from '../ui/Phone'
 import { Inventory } from '../ui/Inventory'
+import { Computer } from '../ui/Computer'
 import { InteractPrompt } from '../ui/InteractPrompt'
 import { GameLoop } from '../core/GameLoop'
 import { GameState, type SerializedGame } from './GameState'
@@ -24,6 +25,7 @@ export class Game {
   private hud: HUD
   private phone: Phone
   private inventory: Inventory
+  private computer: Computer
   private interactPrompt: InteractPrompt
   private loop: GameLoop
   private pauseEl: HTMLElement
@@ -47,6 +49,7 @@ export class Game {
     this.hud = new HUD(root)
     this.phone = new Phone(root)
     this.inventory = new Inventory(root)
+    this.computer = new Computer(root, { onClose: () => this.setInteractive(true) })
     this.interactPrompt = new InteractPrompt(root)
     this.pauseEl = this.buildPause()
     root.appendChild(this.pauseEl)
@@ -132,7 +135,8 @@ export class Game {
         this.interact()
         break
       case 'Escape':
-        this.togglePause()
+        if (this.computer.isOpen) this.computer.close()
+        else this.togglePause()
         break
       case 'F5':
         e.preventDefault()
@@ -151,13 +155,21 @@ export class Game {
       case 'sleep':
         this.doSleep()
         break
-      case 'work':
-        this.doWork()
+      case 'computer':
+        this.openComputer()
         break
       case 'eat':
         this.doEat()
         break
     }
+  }
+
+  private openComputer(): void {
+    if (this.paused) return
+    this.phone.close()
+    this.inventory.close()
+    this.setInteractive(false)
+    this.computer.open(this.gs)
   }
 
   private doSleep(): void {
@@ -174,24 +186,6 @@ export class Game {
     showToast('😴 Yaxshi uxlading — energiya to‘ldi')
   }
 
-  private doWork(): void {
-    if (this.gs.needs.energy < 12) {
-      showToast('Juda charchagansan — avval uxla')
-      return
-    }
-    this.gs.time.advance(180) // 3 soat
-    const skill = this.gs.skills.design
-    const pay = Math.round(80000 + skill * 4000)
-    this.gs.addMoney(pay)
-    this.gs.skills.design = Math.min(100, skill + 2)
-    const n = this.gs.needs
-    n.energy -= 18
-    n.stress += 10
-    n.hunger += 12
-    this.gs.clampNeeds()
-    showToast(`💻 Ish bajarildi · +${formatMoney(pay)} so'm · dizayn +2`)
-  }
-
   private doEat(): void {
     this.gs.time.advance(20)
     const n = this.gs.needs
@@ -203,14 +197,14 @@ export class Game {
   }
 
   private togglePhone(): void {
-    if (this.paused) return
+    if (this.paused || this.computer.isOpen) return
     this.inventory.close()
     const open = this.phone.toggle()
     this.setInteractive(!open)
   }
 
   private toggleInventory(): void {
-    if (this.paused) return
+    if (this.paused || this.computer.isOpen) return
     this.phone.close()
     const open = this.inventory.toggle(this.gs.inventory)
     this.setInteractive(!open)
@@ -222,6 +216,7 @@ export class Game {
     if (this.paused) {
       this.phone.close()
       this.inventory.close()
+      this.computer.close()
       this.interactPrompt.hide()
       this.setInteractive(false)
     } else {
@@ -286,14 +281,9 @@ export class Game {
     this.hud.dispose()
     this.phone.dispose()
     this.inventory.dispose()
+    this.computer.dispose()
     this.interactPrompt.dispose()
     this.pauseEl.remove()
     this.world.dispose()
   }
-}
-
-function formatMoney(v: number): string {
-  return Math.round(v)
-    .toString()
-    .replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
 }

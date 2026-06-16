@@ -20,7 +20,7 @@ export interface BoxCollider {
 export interface Interactable {
   id: string
   label: string
-  action: 'sleep' | 'work' | 'eat'
+  action: 'sleep' | 'eat' | 'computer'
   x: number
   z: number
   radius: number
@@ -110,7 +110,7 @@ export class World {
     const wallT = 0.2
     const cx = 0
     const cz = -10
-    this.addWall(group, wallMat, cx, cz - 4, 8, wallH, wallT, false)
+    this.addWall(group, wallMat, cx, cz - 4, 8, wallH, wallT, true)
     this.addWall(group, wallMat, cx - 4, cz, wallT, wallH, 8, true)
     this.addWall(group, wallMat, cx + 4, cz, wallT, wallH, 8, true)
     this.addWall(group, wallMat, cx - 2.75, cz + 4, 2.5, wallH, wallT, false)
@@ -166,7 +166,7 @@ export class World {
 
     this.interactables.push(
       { id: 'bed', label: 'Uxlash', action: 'sleep', x: -2.5, z: -12, radius: 1.9 },
-      { id: 'desk', label: 'Ishlash (dizayn)', action: 'work', x: 2.4, z: -13, radius: 1.9 },
+      { id: 'desk', label: 'Kompyuter', action: 'computer', x: 2.4, z: -13, radius: 1.9 },
       { id: 'kitchen', label: 'Ovqatlanish', action: 'eat', x: 2.5, z: -8, radius: 1.8 }
     )
   }

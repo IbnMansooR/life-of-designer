@@ -53,7 +53,7 @@ Natija: `release/LifeOfDesigner.exe` — o'rnatishsiz, ikki marta bosib ochiladi
 | `W A S D` | Yurish |
 | `Shift` | Yugurish |
 | Sichqoncha | Qarash (kanvasga bosib pointer lock) |
-| `E` | Ishlatish (uxlash / ishlash / ovqatlanish) |
+| `E` | Ishlatish (kompyuter / uxlash / ovqatlanish) |
 | `I` | Inventar |
 | `C` | 1-shaxs / 3-shaxs kamera |
 | `P` | Telefon |
@@ -85,7 +85,7 @@ Prinsip: **gameplay logikasi grafikadan mustaqil** — har bir tizim alohida mod
 - [x] **Phase 2 — Player System:** tashqi ko'rinish (teri/soch/kiyim), inventar, interaksiya (uxlash/ishlash/ovqatlanish), jonli telefon (balans/xabar/kontakt)
 - [x] **Phase 3 — Basic City:** yo'l to'ri + trotuar, ko'p bino, harakatlanuvchi transport, yuruvchi NPC'lar, kun/tun sikli (chiroqlar tunda yonadi)
 - [x] **Phase 4 — Life Simulation:** oila aloqa darajasi (0–100), telefonda qo'ng'iroq, oilaga pul yuborish, e'tiborsizlik oqibati (onang sog'inadi), dinamik xabarlar
-- [ ] **Phase 5 — Designer Career:** o'qish, ish, freelance, mijoz, portfolio
+- [x] **Phase 5 — Designer Career:** stolдаги kompyuter (Designer OS), freelance platforma (mijoz/byudjet/deadline), loyiha ustida ishlash → topshirish (pul + reputatsiya + portfolio), o'rganish kurslari, karera darajasi (Level 0→6)
 - [ ] **Phase 6 — Business System:** agentlik, xodimlar, ofis
 - [ ] **Phase 7 — Complete World:** to'liq megapolis
 

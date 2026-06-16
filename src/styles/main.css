@@ -860,6 +860,186 @@ button {
   color: #fff;
 }
 
+/* ============================================================
+   PHASE 5 — Designer Career (computer / freelance)
+   ============================================================ */
+.computer {
+  background: rgba(5, 7, 12, 0.8);
+  backdrop-filter: blur(6px);
+}
+
+.pc-window {
+  width: min(760px, 94vw);
+  height: min(560px, 88vh);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.pc-titlebar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--panel-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.pc-title {
+  font-weight: 700;
+}
+
+.pc-close {
+  background: transparent;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  font-size: 15px;
+}
+
+.pc-close:hover {
+  background: var(--bad);
+  color: #fff;
+}
+
+.pc-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+
+.pc-tab {
+  background: transparent;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.pc-tab:hover {
+  background: var(--panel-2);
+}
+
+.pc-tab.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.pc-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pc-empty {
+  color: var(--text-dim);
+  text-align: center;
+  padding: 40px 0;
+}
+
+.job-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.job-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.job-main .bar {
+  flex: 0 0 auto;
+}
+
+.job-title {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.job-meta {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.job-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.job-budget {
+  font-weight: 800;
+  color: var(--good);
+  font-size: 14px;
+}
+
+.pc-btn {
+  background: var(--accent);
+  color: #fff;
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-weight: 700;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.pc-btn:hover {
+  filter: brightness(1.1);
+}
+
+.pc-btn.good {
+  background: var(--good);
+}
+
+.profile-head {
+  margin-bottom: 8px;
+}
+
+.profile-name {
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.profile-level {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.profile-stat {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.profile-stat > span {
+  width: 130px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.profile-row {
+  font-size: 14px;
+}
+
 /* ---------- Toast ---------- */
 .toast {
   position: absolute;
