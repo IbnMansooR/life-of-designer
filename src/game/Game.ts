@@ -77,6 +77,7 @@ export class Game {
   private onNewDay(day: number): void {
     const r = this.gs.applyDailyFamily(day)
     const biz = this.gs.processAgencyDay()
+    this.gs.processRelationshipDay()
     this.gs.checkAchievements()
     void this.autoSave()
     if (r.neglected) {

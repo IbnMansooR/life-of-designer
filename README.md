@@ -91,6 +91,11 @@ Prinsip: **gameplay logikasi grafikadan mustaqil** — har bir tizim alohida mod
 
 **🎉 Barcha 7 bosqich tugadi — birinchi to'liq versiya tayyor.**
 
+### Kengaytmalar (roadmapdan keyin)
+- [x] **Phase 8 — Munosabat & Oila (Part 2):** tanishuv (dating), uchrashuv/sovg'a/vaqt, unashtirish, turmush qurish, farzand (o'sib boradi), e'tiborsizlik → ajralish — telefonда "Sevgi" ilovasi
+- [ ] **Phase 9 — PontoRest & ijtimoiy (Part 5)** — keyingi
+- [ ] **Phase 10 — Polish & balans** — keyingi
+
 ---
 
 ## Asosiy til

@@ -1162,6 +1162,107 @@ button {
   transform: translateX(3px);
 }
 
+/* ============================================================
+   PHASE 8 — Relationships (Sevgi ilovasi)
+   ============================================================ */
+.love-cand {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px;
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.love-cname {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.love-cmeta {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.love-cand .call-btn {
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
+.love-header {
+  margin-bottom: 10px;
+}
+
+.love-pname {
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.love-status {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+
+.love-rel {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+.love-sub {
+  font-weight: 700;
+  font-size: 13px;
+  margin: 10px 0 6px;
+  color: var(--text-dim);
+}
+
+.love-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.love-btn {
+  padding: 10px;
+  background: var(--panel-2);
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.love-btn:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+.love-btn.danger {
+  border-color: var(--bad);
+}
+
+.love-btn.danger:hover {
+  background: var(--bad);
+}
+
+.love-children {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.love-child {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
 /* ---------- Toast ---------- */
 .toast {
   position: absolute;

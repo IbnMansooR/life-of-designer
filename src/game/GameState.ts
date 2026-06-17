@@ -16,6 +16,15 @@ import {
 } from '../data/business'
 import type { EventEffect } from '../data/events'
 import { ACHIEVEMENTS } from '../data/achievements'
+import {
+  type Partner,
+  generateCandidates as generatePartnerCandidates,
+  randomChildName,
+  DATE_VENUES,
+  ENGAGE_THRESHOLD,
+  MARRY_THRESHOLD,
+  WEDDING_COST
+} from '../data/partners'
 
 export interface Needs {
   energy: number // 0..100 (uyqu/charchoq)
@@ -53,6 +62,8 @@ export interface SerializedGame {
   activeProjects: Project[]
   agency: Agency | null
   unlockedAchievements: string[]
+  partner: Partner | null
+  datingCandidates: Partner[]
   timeMinutes: number
   position: Vec3
   rotationY: number
@@ -77,6 +88,8 @@ export class GameState {
   activeProjects: Project[] = []
   agency: Agency | null = null
   unlockedAchievements: string[] = []
+  partner: Partner | null = null
+  datingCandidates: Partner[] = []
   time = new GameTime()
   position: Vec3 = { x: 0, y: 0, z: 0 }
   rotationY = 0
@@ -95,6 +108,7 @@ export class GameState {
     gs.familyRelationship = 70
     gs.lastFamilyContactDay = 1
     gs.availableJobs = generateJobs(4)
+    gs.datingCandidates = generatePartnerCandidates(4)
     gs.time = new GameTime()
     gs.position = { x: 0, y: 0, z: 2 }
     gs.rotationY = 0
@@ -151,6 +165,13 @@ export class GameState {
           }
         : null,
       unlockedAchievements: [...this.unlockedAchievements],
+      partner: this.partner
+        ? { ...this.partner, children: this.partner.children.map((c) => ({ ...c })) }
+        : null,
+      datingCandidates: this.datingCandidates.map((p) => ({
+        ...p,
+        children: p.children.map((c) => ({ ...c }))
+      })),
       timeMinutes: this.time.totalMinutes,
       position: { ...this.position },
       rotationY: this.rotationY
@@ -181,6 +202,12 @@ export class GameState {
         }
       : null
     gs.unlockedAchievements = data.unlockedAchievements ? [...data.unlockedAchievements] : []
+    gs.partner = data.partner
+      ? { ...data.partner, children: data.partner.children.map((c) => ({ ...c })) }
+      : null
+    gs.datingCandidates = data.datingCandidates
+      ? data.datingCandidates.map((p) => ({ ...p, children: p.children.map((c) => ({ ...c })) }))
+      : []
     gs.time = new GameTime()
     gs.time.totalMinutes = data.timeMinutes
     gs.position = { ...data.position }
@@ -427,6 +454,137 @@ export class GameState {
         bus.emit(GameEvents.Toast, `🏆 Yutuq: ${a.title}`)
       }
     }
+  }
+
+  // ===== Munosabat / Oila (Part 2) =====
+
+  refreshCandidates(): void {
+    if (!this.partner && this.datingCandidates.length < 3) {
+      this.datingCandidates.push(...generatePartnerCandidates(3 - this.datingCandidates.length))
+    }
+  }
+
+  startDating(id: string): void {
+    if (this.partner) return
+    const idx = this.datingCandidates.findIndex((p) => p.id === id)
+    if (idx < 0) return
+    const [p] = this.datingCandidates.splice(idx, 1)
+    p.relationship = 25
+    p.status = 'dating'
+    p.lastContactDay = this.time.day
+    this.partner = p
+    bus.emit(GameEvents.Toast, `${p.name} bilan tanishding 💞`)
+  }
+
+  dateWith(venueIndex: number): void {
+    const p = this.partner
+    const v = DATE_VENUES[venueIndex]
+    if (!p || !v) return
+    if (this.money < v.cost) {
+      bus.emit(GameEvents.Toast, 'Mablag‘ yetarli emas')
+      return
+    }
+    this.addMoney(-v.cost)
+    p.relationship = clamp(p.relationship + v.rel)
+    p.lastContactDay = this.time.day
+    this.needs.mood = clamp(this.needs.mood + 6)
+    this.time.advance(120)
+    bus.emit(GameEvents.Toast, `${v.name}da uchrashuv — aloqa +${v.rel}`)
+    bus.emit(GameEvents.NeedsChanged, this.needs)
+  }
+
+  giftPartner(amount: number): void {
+    const p = this.partner
+    if (!p) return
+    if (this.money < amount) {
+      bus.emit(GameEvents.Toast, 'Mablag‘ yetarli emas')
+      return
+    }
+    this.addMoney(-amount)
+    p.relationship = clamp(p.relationship + 8)
+    p.lastContactDay = this.time.day
+    bus.emit(GameEvents.Toast, 'Sovg‘a berding — aloqa +8 💝')
+  }
+
+  spendTimeWithPartner(): void {
+    const p = this.partner
+    if (!p) return
+    p.relationship = clamp(p.relationship + 6)
+    p.lastContactDay = this.time.day
+    this.needs.mood = clamp(this.needs.mood + 7)
+    this.time.advance(90)
+    bus.emit(GameEvents.Toast, 'Birga vaqt o‘tkazding 💞')
+    bus.emit(GameEvents.NeedsChanged, this.needs)
+  }
+
+  engagePartner(): void {
+    const p = this.partner
+    if (!p || p.status !== 'dating') return
+    if (p.relationship < ENGAGE_THRESHOLD) {
+      bus.emit(GameEvents.Toast, `Aloqa ${ENGAGE_THRESHOLD}+ bo‘lishi kerak`)
+      return
+    }
+    p.status = 'engaged'
+    bus.emit(GameEvents.Toast, `💍 ${p.name} bilan unashtirildingiz!`)
+  }
+
+  marryPartner(): void {
+    const p = this.partner
+    if (!p || p.status !== 'engaged') return
+    if (p.relationship < MARRY_THRESHOLD) {
+      bus.emit(GameEvents.Toast, `Aloqa ${MARRY_THRESHOLD}+ bo‘lishi kerak`)
+      return
+    }
+    if (this.money < WEDDING_COST) {
+      bus.emit(GameEvents.Toast, `To‘y uchun ${formatSom(WEDDING_COST)} so'm kerak`)
+      return
+    }
+    this.addMoney(-WEDDING_COST)
+    p.status = 'married'
+    this.needs.mood = clamp(this.needs.mood + 20)
+    bus.emit(GameEvents.Toast, `🎉 ${p.name} bilan turmush qurdingiz!`)
+    bus.emit(GameEvents.NeedsChanged, this.needs)
+    this.checkAchievements()
+  }
+
+  haveChild(): void {
+    const p = this.partner
+    if (!p || p.status !== 'married') return
+    if (p.children.length >= 4) {
+      bus.emit(GameEvents.Toast, 'Hozircha yetarli 🙂')
+      return
+    }
+    p.children.push({ name: randomChildName(), ageDays: 0 })
+    this.needs.mood = clamp(this.needs.mood + 15)
+    bus.emit(GameEvents.Toast, '👶 Farzand ko‘rdingiz — tabriklaymiz!')
+    bus.emit(GameEvents.NeedsChanged, this.needs)
+    this.checkAchievements()
+  }
+
+  breakup(): void {
+    const p = this.partner
+    if (!p) return
+    this.partner = null
+    this.needs.mood = clamp(this.needs.mood - 15)
+    this.refreshCandidates()
+    bus.emit(GameEvents.Toast, `${p.name} bilan ajrashdingiz 💔`)
+    bus.emit(GameEvents.NeedsChanged, this.needs)
+  }
+
+  /** Har kunda — aloqa pasayishi, farzand o'sishi, ajralish xavfi (Part 2). */
+  processRelationshipDay(): void {
+    const p = this.partner
+    if (!p) {
+      this.refreshCandidates()
+      return
+    }
+    for (const c of p.children) c.ageDays += 1
+    const daysSince = this.time.day - p.lastContactDay
+    if (daysSince >= 2 && p.status !== 'married') {
+      p.relationship = clamp(p.relationship - 6)
+    }
+    if (p.relationship > 60) this.needs.mood = clamp(this.needs.mood + 2)
+    if (p.relationship <= 0) this.breakup()
   }
 }
 

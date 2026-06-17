@@ -2,6 +2,15 @@
 import { el } from './dom'
 import type { GameState } from '../game/GameState'
 import { getFamilyMembers } from '../data/families'
+import {
+  DATE_VENUES,
+  statusLabel,
+  childStage,
+  childYears,
+  ENGAGE_THRESHOLD,
+  MARRY_THRESHOLD,
+  WEDDING_COST
+} from '../data/partners'
 
 interface AppDef {
   id: string
@@ -11,6 +20,7 @@ interface AppDef {
 
 const APPS: AppDef[] = [
   { id: 'calls', name: 'Oila', icon: '📞' },
+  { id: 'love', name: 'Sevgi', icon: '💞' },
   { id: 'messages', name: 'Xabarlar', icon: '💬' },
   { id: 'bank', name: 'Bank', icon: '🏦' },
   { id: 'map', name: 'Xarita', icon: '🗺️' },
@@ -91,6 +101,8 @@ export class Phone {
     switch (id) {
       case 'calls':
         return this.renderFamily(gs)
+      case 'love':
+        return this.renderLove(gs)
       case 'bank':
         return this.renderBank(gs)
       case 'messages':
@@ -144,6 +156,120 @@ export class Phone {
       ),
       el('div', { class: 'ph-note', text: 'Muntazam aloqa — aloqa darajasini oshiradi.' })
     ]
+  }
+
+  private renderLove(gs: GameState | null): Node[] {
+    if (!gs) return [el('div', { class: 'ph-note', text: '...' })]
+    const p = gs.partner
+    if (!p) {
+      const cands = gs.datingCandidates
+      if (!cands.length) return [el('div', { class: 'ph-note', text: 'Hozircha nomzod yo‘q.' })]
+      return [
+        el('div', { class: 'ph-note', text: 'Tanishish uchun birini tanlang:' }),
+        ...cands.map((c) =>
+          el('div', { class: 'love-cand' }, [
+            el('div', { class: 'love-cname', text: `${c.name}, ${c.age}` }),
+            el('div', { class: 'love-cmeta', text: `${c.job} · ${c.personality}` }),
+            el('button', {
+              class: 'call-btn',
+              text: 'Tanishish',
+              on: { click: () => { gs.startDating(c.id); this.refresh() } }
+            })
+          ])
+        )
+      ]
+    }
+
+    const rel = Math.round(p.relationship)
+    const relFill = el('span')
+    relFill.style.width = `${rel}%`
+    relFill.style.background = rel > 50 ? 'var(--good)' : rel > 25 ? 'var(--warn)' : 'var(--bad)'
+
+    const nodes: Node[] = [
+      el('div', { class: 'love-header' }, [
+        el('div', { class: 'love-pname', text: `${p.name}, ${p.age}` }),
+        el('div', { class: 'love-status', text: `${statusLabel(p.status)} · ${p.job}` }),
+        el('div', { class: 'bar' }, [relFill]),
+        el('div', { class: 'love-rel', text: `Aloqa: ${rel}/100` })
+      ]),
+      el('div', { class: 'love-sub', text: 'Uchrashuv' }),
+      el(
+        'div',
+        { class: 'send-row' },
+        DATE_VENUES.map((v, i) =>
+          el('button', {
+            class: 'send-btn',
+            text: v.name,
+            on: { click: () => { gs.dateWith(i); this.refresh() } }
+          })
+        )
+      )
+    ]
+
+    const actions: HTMLElement[] = [
+      el('button', {
+        class: 'love-btn',
+        text: 'Vaqt o‘tkazish',
+        on: { click: () => { gs.spendTimeWithPartner(); this.refresh() } }
+      }),
+      el('button', {
+        class: 'love-btn',
+        text: 'Sovg‘a (100 000)',
+        on: { click: () => { gs.giftPartner(100_000); this.refresh() } }
+      })
+    ]
+    if (p.status === 'dating') {
+      actions.push(
+        el('button', {
+          class: 'love-btn',
+          text: `Unashtirish (aloqa ${ENGAGE_THRESHOLD}+)`,
+          on: { click: () => { gs.engagePartner(); this.refresh() } }
+        })
+      )
+    }
+    if (p.status === 'engaged') {
+      actions.push(
+        el('button', {
+          class: 'love-btn',
+          text: `Turmush qurish (aloqa ${MARRY_THRESHOLD}+, ${formatMoney(WEDDING_COST)})`,
+          on: { click: () => { gs.marryPartner(); this.refresh() } }
+        })
+      )
+    }
+    if (p.status === 'married') {
+      actions.push(
+        el('button', {
+          class: 'love-btn',
+          text: 'Farzand ko‘rish 👶',
+          on: { click: () => { gs.haveChild(); this.refresh() } }
+        })
+      )
+    }
+    actions.push(
+      el('button', {
+        class: 'love-btn danger',
+        text: 'Ajralish',
+        on: { click: () => { gs.breakup(); this.refresh() } }
+      })
+    )
+    nodes.push(el('div', { class: 'love-actions' }, actions))
+
+    if (p.children.length) {
+      nodes.push(el('div', { class: 'love-sub', text: 'Farzandlar' }))
+      nodes.push(
+        el(
+          'div',
+          { class: 'love-children' },
+          p.children.map((c) =>
+            el('div', {
+              class: 'love-child',
+              text: `${c.name} — ${childYears(c.ageDays)} yosh (${childStage(c.ageDays)})`
+            })
+          )
+        )
+      )
+    }
+    return nodes
   }
 
   private renderBank(gs: GameState | null): Node[] {
