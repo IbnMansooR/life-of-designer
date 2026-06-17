@@ -6,7 +6,8 @@ import type { GameTime } from '../core/Time'
 import { Traffic } from './Traffic'
 import { NpcManager } from './Npc'
 import { DayNight } from './DayNight'
-import { ROADS, isDowntown } from './cityLayout'
+import { ROADS } from './cityLayout'
+import { WIN_TEX, districtAt, makeTree } from './cityProps'
 
 /** Oddiy AABB kollayder (XZ tekisligida). */
 export interface BoxCollider {
@@ -27,6 +28,7 @@ export interface Interactable {
 }
 
 const BUILDING_PALETTE = [0x5a6678, 0x4a5468, 0x6b5a78, 0x4f6b5a, 0x78705a, 0x556070, 0x6a6a78]
+const RESIDENTIAL_PALETTE = [0xb5805a, 0xc89b6e, 0xa86b4a, 0xd0a878, 0x9a6b52, 0xc2a06a]
 
 export class World {
   readonly scene = new THREE.Scene()
@@ -175,6 +177,7 @@ export class World {
   private buildCity(): void {
     for (const r of ROADS) this.addRoad(r.dir, r.pos, r.from, r.to, r.width)
     this.addBuildings()
+    this.addStreetTrees()
     this.addLamps()
   }
 
@@ -220,29 +223,97 @@ export class World {
     for (let gx = -84; gx <= 84; gx += 12) {
       for (let gz = -84; gz <= 84; gz += 12) {
         if (onRoadBuffer(gx, gz) || nearApartmentZone(gx, gz)) continue
+        const dist = districtAt(gx, gz)
+        if (dist === 'park') {
+          this.addPark(gx, gz)
+          continue
+        }
         const r1 = frand2(gx, gz)
         const r2 = frand2(gx + 7.1, gz - 3.3)
-        const downtown = isDowntown(gx, gz)
+        const rh = frand2(gx * 1.3, gz * 0.7)
         const w = 6 + r1 * 3.5
         const d = 6 + r2 * 3.5
-        const h = downtown
-          ? 28 + frand2(gx * 1.3, gz * 0.7) * 42 // osmono'par
-          : 6 + frand2(gx * 1.3, gz * 0.7) * 26
-        const color = downtown ? 0x2c3340 : BUILDING_PALETTE[Math.floor(r1 * BUILDING_PALETTE.length)]
+
+        let h: number
+        let color: number
+        let tex: THREE.Texture
+        let rough: number
+        let metal: number
+        if (dist === 'downtown') {
+          h = 28 + rh * 42
+          color = 0x2c3340
+          tex = WIN_TEX.tall
+          rough = 0.45
+          metal = 0.45
+        } else if (dist === 'residential') {
+          h = 6 + rh * 6
+          color = RESIDENTIAL_PALETTE[Math.floor(r1 * RESIDENTIAL_PALETTE.length)]
+          tex = WIN_TEX.short
+          rough = 0.9
+          metal = 0
+        } else {
+          h = 10 + rh * 18
+          color = BUILDING_PALETTE[Math.floor(r1 * BUILDING_PALETTE.length)]
+          tex = WIN_TEX.mid
+          rough = 0.7
+          metal = 0.12
+        }
+
         const b = new THREE.Mesh(
           new THREE.BoxGeometry(w, h, d),
-          new THREE.MeshStandardMaterial({
-            color,
-            roughness: downtown ? 0.5 : 0.85,
-            metalness: downtown ? 0.4 : 0
-          })
+          new THREE.MeshStandardMaterial({ color, map: tex, roughness: rough, metalness: metal })
         )
         b.position.set(gx, h / 2, gz)
         b.castShadow = true
         b.receiveShadow = true
         this.scene.add(b)
         this.colliders.push({ minX: gx - w / 2, maxX: gx + w / 2, minZ: gz - d / 2, maxZ: gz + d / 2 })
-        if (downtown) this.addTowerWindows(gx, gz, w, d, h)
+
+        if (dist === 'downtown') this.addTowerWindows(gx, gz, w, d, h)
+        if (dist === 'residential') this.addRoof(gx, gz, w, d, h)
+      }
+    }
+  }
+
+  /** Yashash uyiga uchburchak tom. */
+  private addRoof(x: number, z: number, w: number, d: number, h: number): void {
+    const roof = new THREE.Mesh(
+      new THREE.ConeGeometry(Math.max(w, d) * 0.74, 2.4, 4),
+      new THREE.MeshStandardMaterial({ color: 0x7a3b2a, roughness: 1 })
+    )
+    roof.position.set(x, h + 1.2, z)
+    roof.rotation.y = Math.PI / 4
+    roof.castShadow = true
+    this.scene.add(roof)
+  }
+
+  /** Park — yashil maydon + daraxtlar. */
+  private addPark(x: number, z: number): void {
+    const patch = new THREE.Mesh(
+      new THREE.BoxGeometry(11, 0.1, 11),
+      new THREE.MeshStandardMaterial({ color: 0x3f6b3a, roughness: 1 })
+    )
+    patch.position.set(x, 0.06, z)
+    patch.receiveShadow = true
+    this.scene.add(patch)
+    const n = 2 + Math.floor(frand2(x, z) * 2)
+    for (let i = 0; i < n; i++) {
+      const t = makeTree()
+      t.position.set(x + (frand2(x + i * 3, z) - 0.5) * 8, 0, z + (frand2(x, z + i * 3) - 0.5) * 8)
+      this.scene.add(t)
+    }
+  }
+
+  /** Ko'cha bo'ylab daraxtlar (trotuarda). */
+  private addStreetTrees(): void {
+    for (const z of [8, -46, 60]) {
+      for (let x = -78; x <= 78; x += 18) {
+        for (const side of [-1, 1]) {
+          const t = makeTree()
+          t.scale.setScalar(0.85)
+          t.position.set(x + 6, 0, z + side * 5.4)
+          this.scene.add(t)
+        }
       }
     }
   }

@@ -96,6 +96,7 @@ Prinsip: **gameplay logikasi grafikadan mustaqil** — har bir tizim alohida mod
 - [x] **Phase 9 — PontoRest & ijtimoiy (Part 5):** kreativ platforma (ilhom feed → moodboard, kreativlik oshadi), ijtimoiy media (ish e'lon qilish → obunachilar + ijtimoiy obro'), shaxsiy brend
 - [x] **Phase 10 — Polish & balans:** vaqt tezligini boshqarish (❚❚/1×/2×/4× HUD'da), ehtiyojlar balansi yumshatildi
 - [x] **Phase 11 — Character Animation:** to'liq qo'l-oyoqli odam rig (yelka/tirsak/son/tizza/panja/oyoq), protsedural animatsiyalar — yurish, yugurish, o'tirish, yeyish, ichish, uxlash; player + barcha NPC'lar jonli
+- [x] **Phase 12 — World Generator:** tumanlar (downtown/business/residential/park), binolarga deraza teksturasi, yashash uylariga tom, parklar + daraxtlar, ko'cha daraxtlari — shahar ancha chiroyli
 
 ---
 
