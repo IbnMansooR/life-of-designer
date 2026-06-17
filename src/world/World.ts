@@ -141,12 +141,56 @@ export class World {
         group.add(leg)
       }
     }
-    const monitor = new THREE.Mesh(
-      new THREE.BoxGeometry(1.1, 0.65, 0.06),
-      new THREE.MeshStandardMaterial({ color: 0x0a0c10, emissive: 0x1b3a6b, emissiveIntensity: 0.8 })
-    )
-    monitor.position.set(2.4, 1.45, -13.3)
-    group.add(monitor)
+    // Kompyuter — monitor + stend + klaviatura + sichqoncha + tizim bloki
+    const pcMat = new THREE.MeshStandardMaterial({ color: 0x14171f, roughness: 0.6 })
+    const screenMat = new THREE.MeshStandardMaterial({ color: 0x0a0c10, emissive: 0x1b3a6b, emissiveIntensity: 0.9 })
+
+    // Monitor ramkasi (tashqi)
+    const monFrame = new THREE.Mesh(new THREE.BoxGeometry(1.18, 0.72, 0.07), pcMat)
+    monFrame.position.set(2.4, 1.46, -13.32)
+    monFrame.castShadow = true
+    group.add(monFrame)
+    // Ekran (ichki, yorug')
+    const monScreen = new THREE.Mesh(new THREE.BoxGeometry(1.06, 0.60, 0.04), screenMat)
+    monScreen.position.set(2.4, 1.46, -13.29)
+    group.add(monScreen)
+    // Monitor stendi (bo'yni)
+    const standNeck = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.22, 0.07), pcMat)
+    standNeck.position.set(2.4, 1.12, -13.38)
+    group.add(standNeck)
+    // Monitor stendi (asosi)
+    const standBase = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.025, 0.18), pcMat)
+    standBase.position.set(2.4, 1.015, -13.44)
+    group.add(standBase)
+
+    // Klaviatura
+    const kbMat = new THREE.MeshStandardMaterial({ color: 0x1c2030, roughness: 0.8 })
+    const keyboard = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.02, 0.22), kbMat)
+    keyboard.position.set(2.4, 1.07, -12.78)
+    keyboard.castShadow = true
+    group.add(keyboard)
+    // Klaviatura yuzasi (biroz yopiq)
+    const kbKeys = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.01, 0.18),
+      new THREE.MeshStandardMaterial({ color: 0x252a38, roughness: 0.9 }))
+    kbKeys.position.set(2.4, 1.082, -12.78)
+    group.add(kbKeys)
+
+    // Sichqoncha
+    const mouseMat = new THREE.MeshStandardMaterial({ color: 0x2a2f40, roughness: 0.5 })
+    const mouse = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.026, 0.13), mouseMat)
+    mouse.position.set(2.94, 1.066, -12.78)
+    group.add(mouse)
+
+    // Tizim bloki (kichik, stol ustida)
+    const tower = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.28, 0.22), pcMat)
+    tower.position.set(3.12, 1.2, -13.16)
+    tower.castShadow = true
+    group.add(tower)
+    // Tizim bloki LED chizig'i
+    const ledMat = new THREE.MeshStandardMaterial({ color: 0x003fff, emissive: 0x003fff, emissiveIntensity: 1.5 })
+    const led = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.14, 0.008), ledMat)
+    led.position.set(3.054, 1.2, -13.06)
+    group.add(led)
 
     const counter = new THREE.Mesh(
       new THREE.BoxGeometry(2, 0.9, 0.6),

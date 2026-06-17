@@ -12,6 +12,7 @@ import {
 
 export interface DesignStudioCallbacks {
   onSubmit: (quality: number) => void
+  onClose?: () => void
 }
 
 interface Placed {
@@ -112,6 +113,7 @@ export class DesignStudio {
   close(): void {
     this.isOpen = false
     this.root.classList.add('hidden')
+    this.cb.onClose?.()
   }
 
   private refreshTools(): void {

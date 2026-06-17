@@ -668,7 +668,11 @@ export class GameState {
 
   playComputerGame(name: string): void {
     this.addDistraction(90, 12, 8, -8)
-    bus.emit(GameEvents.Toast, `🎮 ${name} o‘ynading`)
+    bus.emit(GameEvents.Toast, `🎮 ${name} o’ynading`)
+  }
+
+  applyGameSession(mins: number, moodBonus: number): void {
+    this.addDistraction(mins, moodBonus, 3, -4)
   }
 
   browseInternet(): void {

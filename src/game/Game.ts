@@ -70,7 +70,11 @@ export class Game {
     this.designStudio = new DesignStudio(root, {
       onSubmit: (quality) => {
         this.gs.submitDesignWork(this.workingProjectId, quality)
+        this.computer.open(this.gs)
         this.computer.refresh()
+      },
+      onClose: () => {
+        this.computer.open(this.gs)
       }
     })
     this.interactPrompt = new InteractPrompt(root)
@@ -225,13 +229,14 @@ export class Game {
     this.computer.open(this.gs)
   }
 
-  /** "Ishlash" -> dizayn studiyasi (TZ bilan). */
+  /** "Ishlash" -> dizayn studiyasi (TZ bilan). Kompyuter yopiladi, studiya ochiladi. */
   private openDesignStudio(id: string, type: string): void {
     if (this.gs.needs.energy < 12) {
       showToast('Juda charchagansan — avval dam ol')
       return
     }
     this.workingProjectId = id
+    this.computer.close()
     this.designStudio.open(makeBrief(type))
   }
 
