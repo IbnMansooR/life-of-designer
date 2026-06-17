@@ -23,6 +23,7 @@ export class Player {
 
   /** Qarash/harakat yoqilganmi (telefon yoki pauza ochilganda o'chiriladi). */
   enabled = true
+  sensitivity = 1.0
   private locked = false
 
   private rig: CharacterRig
@@ -47,8 +48,9 @@ export class Player {
   }
   private onMouseMove = (e: MouseEvent): void => {
     if (!this.locked || !this.enabled) return
-    this.yaw -= e.movementX * 0.0022
-    this.pitch -= e.movementY * 0.0022
+    const s = 0.0022 * this.sensitivity
+    this.yaw -= e.movementX * s
+    this.pitch -= e.movementY * s
     this.pitch = Math.max(-1.2, Math.min(1.2, this.pitch))
   }
 

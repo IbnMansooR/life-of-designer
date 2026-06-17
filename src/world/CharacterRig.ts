@@ -46,16 +46,39 @@ export class CharacterRig {
     torso.position.y = 1.2
     add(this.body, torso)
 
+    // Kiyim naqshi (stripe) — ixtiyoriy rang chizig'i
+    if (a.stripe) {
+      const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.54, 0.30), mat(a.stripe))
+      stripe.position.set(-0.13, 1.2, 0)
+      add(this.body, stripe)
+    }
+
+    // Kamar (belt)
+    const beltHex = '#' + new THREE.Color(a.pants).multiplyScalar(0.62).getHexString()
+    const beltMesh = new THREE.Mesh(new THREE.BoxGeometry(0.51, 0.065, 0.29), mat(beltHex))
+    beltMesh.position.y = 0.905
+    add(this.body, beltMesh)
+
     // Bosh + soch
     const head = new THREE.Mesh(new THREE.SphereGeometry(0.17, 16, 16), mat(a.skin))
     head.position.y = 1.64
     add(this.body, head)
+    const hairR = a.gender === 'female' ? 0.195 : 0.185
     const hair = new THREE.Mesh(
-      new THREE.SphereGeometry(0.185, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.62),
+      new THREE.SphereGeometry(hairR, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.62),
       mat(a.hair)
     )
     hair.position.y = 1.66
     add(this.body, hair)
+    // Qizlar uchun uzun soch (orqada osilib tushadi)
+    if (a.gender === 'female') {
+      const pony = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.055, 0.038, 0.46, 8),
+        mat(a.hair)
+      )
+      pony.position.set(0, 1.415, -0.13)
+      add(this.body, pony)
+    }
 
     // Qo'llar (yelka -> tirsak -> bilak)
     this.shL = pivot(0.31, 1.45, 0)

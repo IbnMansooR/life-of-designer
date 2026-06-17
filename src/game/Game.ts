@@ -134,6 +134,7 @@ export class Game {
       const before = this.gs.time.totalMinutes
       this.gs.time.update(dt)
       this.gs.updateNeeds(this.gs.time.totalMinutes - before)
+      this.player.sensitivity = this.gs.settings.sensitivity
       this.player.update(dt, this.world.colliders)
       this.gs.position = {
         x: this.player.position.x,

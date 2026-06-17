@@ -125,8 +125,10 @@ export class Phone {
         return this.renderGame(gs)
       case 'map':
         return [el('div', { class: 'ph-note', text: 'Megapolis xaritasi: uy, ofis, mijoz joylashuvi — tez orada.' })]
+      case 'settings':
+        return this.renderSettings(gs)
       default:
-        return [el('div', { class: 'ph-note', text: 'Bu bo‘lim keyingi bosqichlarda ochiladi.' })]
+        return [el('div', { class: 'ph-note', text: "Bu bo‘lim keyingi bosqichlarda ochiladi." })]
     }
   }
 
@@ -417,6 +419,47 @@ export class Phone {
         el('div', { class: 'chat-from', text: member }),
         ...msgs.map((m) => el('div', { class: 'bubble', text: m }))
       ])
+    ]
+  }
+
+  private renderSettings(gs: GameState | null): Node[] {
+    if (!gs) return []
+    const s = gs.settings
+
+    const sensitivityBtns = [0.5, 1.0, 1.5, 2.0].map((v) =>
+      el('button', {
+        class: 'send-btn' + (s.sensitivity === v ? ' active' : ''),
+        text: `${v}×`,
+        on: { click: () => { gs.settings.sensitivity = v; this.refresh() } }
+      })
+    )
+
+    const speedBtns = [1, 2, 4].map((v) =>
+      el('button', {
+        class: 'send-btn' + (s.defaultSpeed === v ? ' active' : ''),
+        text: `${v}×`,
+        on: { click: () => { gs.settings.defaultSpeed = v; this.refresh() } }
+      })
+    )
+
+    return [
+      el('div', { class: 'fam-status' }, [
+        el('div', { class: 'fam-rel-label', text: 'Sichqoncha sezgirligi' }),
+        el('div', { class: 'send-row' }, sensitivityBtns)
+      ]),
+      el('div', { class: 'fam-status' }, [
+        el('div', { class: 'fam-rel-label', text: "Standart o’yin tezligi" }),
+        el('div', { class: 'send-row' }, speedBtns)
+      ]),
+      el('div', { class: 'love-sub', text: 'Boshqaruv' }),
+      el('div', { class: 'ph-note', text: 'WASD / strelkalar — yurish' }),
+      el('div', { class: 'ph-note', text: 'Shift + WASD — yugurish' }),
+      el('div', { class: 'ph-note', text: 'E — ishlatish · P — telefon · I — inventar' }),
+      el('div', { class: 'ph-note', text: 'C — kamera (1-/3-shaxs) · Esc — pauza' }),
+      el('div', { class: 'ph-note', text: 'F5 — saqlash · F9 — yuklash' }),
+      el('div', { class: 'love-sub', text: "O'yin haqida" }),
+      el('div', { class: 'ph-note', text: 'Life of Designer v0.15.0' }),
+      el('div', { class: 'ph-note', text: '15 bosqich · Offline portable .exe' })
     ]
   }
 

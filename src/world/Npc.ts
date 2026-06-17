@@ -29,8 +29,13 @@ interface Npc {
   speed: number
 }
 
-const HAIRS = [0x1a1410, 0x2b2118, 0x4a2f1a, 0x6b4423]
-const PANTS = [0x2b2f3a, 0x3a3f4a, 0x4a3a2a, 0x1b2030]
+const HAIRS = [0x1a1410, 0x2b2118, 0x4a2f1a, 0x6b4423, 0xb5651d, 0x8a8a8a]
+const PANTS = [0x2b2f3a, 0x3a3f4a, 0x4a3a2a, 0x1b2030, 0x2a3040]
+const FEMALE_NAMES = new Set(['Dilnoza', 'Malika', 'Nigora', 'Kamola', 'Sevara'])
+const STRIPES = [
+  undefined, '#f0a858', undefined, '#58d4a0', undefined,
+  '#c878f0', undefined, '#f06868', undefined, '#78a8f0'
+]
 
 function hex(n: number): string {
   return '#' + n.toString(16).padStart(6, '0')
@@ -55,11 +60,14 @@ export class NpcManager {
   }
 
   private buildPerson(idx: number, name: string): CharacterRig {
+    const isFemale = FEMALE_NAMES.has(name)
     const appearance: Appearance = {
       skin: hex(SKINS[idx % SKINS.length]),
       hair: hex(HAIRS[idx % HAIRS.length]),
       shirt: hex(SHIRTS[idx % SHIRTS.length]),
-      pants: hex(PANTS[idx % PANTS.length])
+      pants: hex(PANTS[idx % PANTS.length]),
+      gender: isFemale ? 'female' : 'male',
+      stripe: STRIPES[idx % STRIPES.length]
     }
     const rig = new CharacterRig(appearance, false)
     const label = makeLabel(name)

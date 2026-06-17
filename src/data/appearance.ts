@@ -6,6 +6,8 @@ export interface Appearance {
   hair: string
   shirt: string
   pants: string
+  gender?: string  // 'male' | 'female'
+  stripe?: string  // ko'ylak ustidagi naqsh rangi (ixtiyoriy)
 }
 
 export const SKIN_TONES = ['#f1c9a5', '#e8b48c', '#c98a5e', '#a86b3c', '#7a4a28']

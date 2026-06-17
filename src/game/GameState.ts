@@ -44,6 +44,11 @@ export interface Skills {
   design: number // 0..100 — dizayn mahorati
 }
 
+export interface GameSettings {
+  sensitivity: number  // sichqoncha sezgirligi: 0.5..2.0
+  defaultSpeed: number // standart o'yin tezligi: 1 | 2 | 4
+}
+
 export interface SerializedGame {
   version: number
   createdAt: string
@@ -71,6 +76,7 @@ export interface SerializedGame {
   posts: number
   brandName: string
   distractionToday: number
+  settings?: Partial<GameSettings>
   timeMinutes: number
   position: Vec3
   rotationY: number
@@ -103,6 +109,7 @@ export class GameState {
   posts = 0
   brandName = ''
   distractionToday = 0 // bugun chalg'ishga sarflangan daqiqalar
+  settings: GameSettings = { sensitivity: 1.0, defaultSpeed: 1 }
   private distractWarned = false
   time = new GameTime()
   position: Vec3 = { x: 0, y: 0, z: 0 }
@@ -192,6 +199,7 @@ export class GameState {
       posts: this.posts,
       brandName: this.brandName,
       distractionToday: this.distractionToday,
+      settings: { ...this.settings },
       timeMinutes: this.time.totalMinutes,
       position: { ...this.position },
       rotationY: this.rotationY
@@ -234,6 +242,7 @@ export class GameState {
     gs.posts = data.posts ?? 0
     gs.brandName = data.brandName ?? ''
     gs.distractionToday = data.distractionToday ?? 0
+    gs.settings = { sensitivity: 1.0, defaultSpeed: 1, ...(data.settings ?? {}) }
     gs.time = new GameTime()
     gs.time.totalMinutes = data.timeMinutes
     gs.position = { ...data.position }
