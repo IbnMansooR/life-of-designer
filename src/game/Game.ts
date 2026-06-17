@@ -6,7 +6,9 @@ import { HUD } from '../ui/HUD'
 import { Phone } from '../ui/Phone'
 import { Inventory } from '../ui/Inventory'
 import { Computer } from '../ui/Computer'
+import { EventModal } from '../ui/EventModal'
 import { InteractPrompt } from '../ui/InteractPrompt'
+import { randomEvent } from '../data/events'
 import { GameLoop } from '../core/GameLoop'
 import { GameState, type SerializedGame } from './GameState'
 import { saveGame, loadGame } from '../core/Save'
@@ -26,6 +28,7 @@ export class Game {
   private phone: Phone
   private inventory: Inventory
   private computer: Computer
+  private eventModal: EventModal
   private interactPrompt: InteractPrompt
   private loop: GameLoop
   private pauseEl: HTMLElement
@@ -50,6 +53,13 @@ export class Game {
     this.phone = new Phone(root)
     this.inventory = new Inventory(root)
     this.computer = new Computer(root, { onClose: () => this.setInteractive(true) })
+    this.eventModal = new EventModal(root, {
+      onChoice: (effect, result) => {
+        this.gs.applyEventChoice(effect)
+        showToast(result)
+        this.setInteractive(true)
+      }
+    })
     this.interactPrompt = new InteractPrompt(root)
     this.pauseEl = this.buildPause()
     root.appendChild(this.pauseEl)
@@ -67,6 +77,7 @@ export class Game {
   private onNewDay(day: number): void {
     const r = this.gs.applyDailyFamily(day)
     const biz = this.gs.processAgencyDay()
+    this.gs.checkAchievements()
     void this.autoSave()
     if (r.neglected) {
       showToast('📞 Onang sog‘indi — telefon qilsang yaxshi bo‘lardi')
@@ -74,6 +85,25 @@ export class Game {
     if (biz) {
       const sign = biz.net >= 0 ? '+' : ''
       showToast(`🏢 Agentlik (kunlik): ${sign}${money(biz.net)} so'm`)
+    }
+    this.maybeTriggerEvent(day)
+  }
+
+  /** Yangi kunda — ehtimollik bilan hayot voqeasi (Part 8). */
+  private maybeTriggerEvent(day: number): void {
+    if (day < 2) return
+    if (
+      this.paused ||
+      this.phone.isOpen ||
+      this.inventory.isOpen ||
+      this.computer.isOpen ||
+      this.eventModal.isOpen
+    ) {
+      return
+    }
+    if (Math.random() < 0.55) {
+      this.setInteractive(false)
+      this.eventModal.open(randomEvent())
     }
   }
 
@@ -140,6 +170,7 @@ export class Game {
         this.interact()
         break
       case 'Escape':
+        if (this.eventModal.isOpen) break
         if (this.computer.isOpen) this.computer.close()
         else this.togglePause()
         break
@@ -287,6 +318,7 @@ export class Game {
     this.phone.dispose()
     this.inventory.dispose()
     this.computer.dispose()
+    this.eventModal.dispose()
     this.interactPrompt.dispose()
     this.pauseEl.remove()
     this.world.dispose()

@@ -14,6 +14,8 @@ import {
   generateCandidates,
   agencyTitle
 } from '../data/business'
+import type { EventEffect } from '../data/events'
+import { ACHIEVEMENTS } from '../data/achievements'
 
 export interface Needs {
   energy: number // 0..100 (uyqu/charchoq)
@@ -50,6 +52,7 @@ export interface SerializedGame {
   availableJobs: Project[]
   activeProjects: Project[]
   agency: Agency | null
+  unlockedAchievements: string[]
   timeMinutes: number
   position: Vec3
   rotationY: number
@@ -73,6 +76,7 @@ export class GameState {
   availableJobs: Project[] = []
   activeProjects: Project[] = []
   agency: Agency | null = null
+  unlockedAchievements: string[] = []
   time = new GameTime()
   position: Vec3 = { x: 0, y: 0, z: 0 }
   rotationY = 0
@@ -146,6 +150,7 @@ export class GameState {
             candidates: this.agency.candidates.map((e) => ({ ...e }))
           }
         : null,
+      unlockedAchievements: [...this.unlockedAchievements],
       timeMinutes: this.time.totalMinutes,
       position: { ...this.position },
       rotationY: this.rotationY
@@ -175,6 +180,7 @@ export class GameState {
           candidates: data.agency.candidates.map((e) => ({ ...e }))
         }
       : null
+    gs.unlockedAchievements = data.unlockedAchievements ? [...data.unlockedAchievements] : []
     gs.time = new GameTime()
     gs.time.totalMinutes = data.timeMinutes
     gs.position = { ...data.position }
@@ -292,6 +298,7 @@ export class GameState {
     this.needs.mood = clamp(this.needs.mood + 8)
     bus.emit(GameEvents.Toast, `✅ Topshirildi! +${formatSom(job.budget)} so'm`)
     bus.emit(GameEvents.NeedsChanged, this.needs)
+    this.checkAchievements()
   }
 
   /** Kurs sotib olish — dizayn mahorati oshadi (Part 4: learning system). */
@@ -330,6 +337,7 @@ export class GameState {
       candidates: generateCandidates(4)
     }
     bus.emit(GameEvents.Toast, `🏢 "${this.agency.name}" agentligi ochildi!`)
+    this.checkAchievements()
     return true
   }
 
@@ -354,6 +362,7 @@ export class GameState {
     a.employees.push(emp)
     if (a.candidates.length < 3) a.candidates.push(...generateCandidates(3 - a.candidates.length))
     bus.emit(GameEvents.Toast, `${emp.name} (${emp.role}) ishga olindi`)
+    this.checkAchievements()
   }
 
   fireEmployee(id: string): void {
@@ -396,6 +405,28 @@ export class GameState {
     const net = income - salaries
     this.addMoney(net)
     return { income, salaries, net }
+  }
+
+  // ===== Hayot eventlari va yutuqlar (Part 8 / Part 5) =====
+
+  applyEventChoice(e: EventEffect): void {
+    if (e.money) this.addMoney(e.money)
+    if (e.mood) this.needs.mood = clamp(this.needs.mood + e.mood)
+    if (e.stress) this.needs.stress = clamp(this.needs.stress + e.stress)
+    if (e.relationship) this.familyRelationship = clamp(this.familyRelationship + e.relationship)
+    if (e.reputation) this.reputation = clamp(this.reputation + e.reputation)
+    this.clampNeeds()
+    this.checkAchievements()
+  }
+
+  /** Ochilmagan yutuqlarni tekshiradi va ochadi. */
+  checkAchievements(): void {
+    for (const a of ACHIEVEMENTS) {
+      if (!this.unlockedAchievements.includes(a.id) && a.test(this)) {
+        this.unlockedAchievements.push(a.id)
+        bus.emit(GameEvents.Toast, `🏆 Yutuq: ${a.title}`)
+      }
+    }
   }
 }
 

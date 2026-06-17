@@ -1100,6 +1100,68 @@ button {
   color: var(--text-dim);
 }
 
+/* ============================================================
+   PHASE 7 — Complete World (life events)
+   ============================================================ */
+.event-modal {
+  background: rgba(5, 7, 12, 0.82);
+  backdrop-filter: blur(6px);
+  z-index: 50;
+}
+
+.event-card {
+  width: min(440px, 92vw);
+  background: var(--panel);
+  border: 1px solid var(--accent);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: var(--shadow);
+}
+
+.event-badge {
+  color: var(--accent-2);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+}
+
+.event-title {
+  font-size: 22px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.event-desc {
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 18px;
+}
+
+.event-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.event-choice {
+  padding: 13px 16px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: left;
+  transition: transform 0.08s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.event-choice:hover {
+  border-color: var(--accent);
+  background: var(--panel);
+  transform: translateX(3px);
+}
+
 /* ---------- Toast ---------- */
 .toast {
   position: absolute;

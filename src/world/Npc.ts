@@ -29,14 +29,22 @@ interface Npc {
 export class NpcManager {
   private npcs: Npc[] = []
 
-  constructor(scene: THREE.Scene, count = 8) {
-    const loop = buildNpcPaths()[0]
-    const total = loopLength(loop)
-    for (let i = 0; i < count; i++) {
-      const mesh = this.buildPerson(SHIRTS[i % SHIRTS.length], SKINS[i % SKINS.length], NAMES[i % NAMES.length])
-      scene.add(mesh)
-      const { seg, dist } = positionOnLoop(loop, (i / count) * total)
-      this.npcs.push({ mesh, loop, seg, dist, speed: 1.0 + (i % 4) * 0.18 })
+  constructor(scene: THREE.Scene, perLoop = 7) {
+    const loops = buildNpcPaths()
+    let idx = 0
+    for (const loop of loops) {
+      const total = loopLength(loop)
+      for (let i = 0; i < perLoop; i++) {
+        const mesh = this.buildPerson(
+          SHIRTS[idx % SHIRTS.length],
+          SKINS[idx % SKINS.length],
+          NAMES[idx % NAMES.length]
+        )
+        scene.add(mesh)
+        const { seg, dist } = positionOnLoop(loop, (i / perLoop) * total)
+        this.npcs.push({ mesh, loop, seg, dist, speed: 1.0 + (idx % 4) * 0.18 })
+        idx++
+      }
     }
   }
 

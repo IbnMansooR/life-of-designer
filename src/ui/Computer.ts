@@ -3,6 +3,7 @@ import { el } from './dom'
 import type { GameState } from '../game/GameState'
 import { COURSES, type Project } from '../data/jobs'
 import { OFFICES, FOUND_COST, FOUND_PORTFOLIO, type Employee } from '../data/business'
+import { ACHIEVEMENTS } from '../data/achievements'
 
 export interface ComputerCallbacks {
   onClose: () => void
@@ -199,6 +200,7 @@ export class Computer {
         bar(gs.skills.design, false)
       ]),
       el('div', { class: 'profile-row', text: `Tugatilgan loyihalar: ${gs.completedProjects}` }),
+      el('div', { class: 'profile-row', text: `Yutuqlar: ${gs.unlockedAchievements.length}/${ACHIEVEMENTS.length}` }),
       el('div', { class: 'profile-row', text: `Balans: ${money(gs.money)} so'm` })
     ]
   }

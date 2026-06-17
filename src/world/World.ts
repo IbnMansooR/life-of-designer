@@ -6,7 +6,7 @@ import type { GameTime } from '../core/Time'
 import { Traffic } from './Traffic'
 import { NpcManager } from './Npc'
 import { DayNight } from './DayNight'
-import { ROADS } from './cityLayout'
+import { ROADS, isDowntown } from './cityLayout'
 
 /** Oddiy AABB kollayder (XZ tekisligida). */
 export interface BoxCollider {
@@ -217,32 +217,64 @@ export class World {
   }
 
   private addBuildings(): void {
-    for (let gx = -60; gx <= 60; gx += 12) {
-      for (let gz = -60; gz <= 60; gz += 12) {
+    for (let gx = -84; gx <= 84; gx += 12) {
+      for (let gz = -84; gz <= 84; gz += 12) {
         if (onRoadBuffer(gx, gz) || nearApartmentZone(gx, gz)) continue
         const r1 = frand2(gx, gz)
         const r2 = frand2(gx + 7.1, gz - 3.3)
+        const downtown = isDowntown(gx, gz)
         const w = 6 + r1 * 3.5
         const d = 6 + r2 * 3.5
-        const h = 6 + frand2(gx * 1.3, gz * 0.7) * 26
-        const color = BUILDING_PALETTE[Math.floor(r1 * BUILDING_PALETTE.length)]
+        const h = downtown
+          ? 28 + frand2(gx * 1.3, gz * 0.7) * 42 // osmono'par
+          : 6 + frand2(gx * 1.3, gz * 0.7) * 26
+        const color = downtown ? 0x2c3340 : BUILDING_PALETTE[Math.floor(r1 * BUILDING_PALETTE.length)]
         const b = new THREE.Mesh(
           new THREE.BoxGeometry(w, h, d),
-          new THREE.MeshStandardMaterial({ color, roughness: 0.85 })
+          new THREE.MeshStandardMaterial({
+            color,
+            roughness: downtown ? 0.5 : 0.85,
+            metalness: downtown ? 0.4 : 0
+          })
         )
         b.position.set(gx, h / 2, gz)
         b.castShadow = true
         b.receiveShadow = true
         this.scene.add(b)
         this.colliders.push({ minX: gx - w / 2, maxX: gx + w / 2, minZ: gz - d / 2, maxZ: gz + d / 2 })
+        if (downtown) this.addTowerWindows(gx, gz, w, d, h)
       }
+    }
+  }
+
+  /** Osmono'par binoga tunda yonadigan deraza panellari (DayNight boshqaradi). */
+  private addTowerWindows(x: number, z: number, w: number, d: number, h: number): void {
+    const winMat = new THREE.MeshStandardMaterial({
+      color: 0x0a0c10,
+      emissive: 0xffd87a,
+      emissiveIntensity: 0,
+      side: THREE.DoubleSide
+    })
+    this.lampBulbs.push(winMat)
+    const panelH = h * 0.88
+    const faces: [number, number, number, number][] = [
+      [0, d / 2 + 0.02, 0, w * 0.8],
+      [0, -d / 2 - 0.02, Math.PI, w * 0.8],
+      [w / 2 + 0.02, 0, Math.PI / 2, d * 0.8],
+      [-w / 2 - 0.02, 0, -Math.PI / 2, d * 0.8]
+    ]
+    for (const [dx, dz, rotY, pw] of faces) {
+      const panel = new THREE.Mesh(new THREE.PlaneGeometry(pw, panelH), winMat)
+      panel.position.set(x + dx, h / 2, z + dz)
+      panel.rotation.y = rotY
+      this.scene.add(panel)
     }
   }
 
   private addLamps(): void {
     const poleMat = new THREE.MeshStandardMaterial({ color: 0x2a2f38 })
-    for (const z of [8, -46]) {
-      for (let x = -60; x <= 60; x += 16) {
+    for (const z of [8, -46, 60]) {
+      for (let x = -84; x <= 84; x += 18) {
         for (const side of [-1, 1]) {
           const lz = z + side * 5.2
           const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 4, 8), poleMat)

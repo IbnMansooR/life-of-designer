@@ -11,11 +11,18 @@ export interface RoadDef {
 }
 
 export const ROADS: RoadDef[] = [
-  { dir: 'x', pos: 8, from: -66, to: 66, width: 8 },
-  { dir: 'x', pos: -46, from: -66, to: 66, width: 8 },
-  { dir: 'z', pos: -26, from: -66, to: 66, width: 8 },
-  { dir: 'z', pos: 28, from: -66, to: 66, width: 8 }
+  { dir: 'x', pos: 8, from: -92, to: 92, width: 8 },
+  { dir: 'x', pos: -46, from: -92, to: 92, width: 8 },
+  { dir: 'x', pos: 60, from: -92, to: 92, width: 8 },
+  { dir: 'z', pos: -26, from: -92, to: 92, width: 8 },
+  { dir: 'z', pos: 28, from: -92, to: 92, width: 8 },
+  { dir: 'z', pos: 72, from: -92, to: 92, width: 8 }
 ]
+
+/** Downtown — osmono'par binolar zonasi (Part 3: DOWNTOWN district). */
+export function isDowntown(x: number, z: number): boolean {
+  return x > 34 && z < -30
+}
 
 export interface Lane {
   from: THREE.Vector3
@@ -52,13 +59,19 @@ export function buildLanes(): Lane[] {
 
 /** Trotuar marshrutlari (NPC'lar shu bo'ylab yuradi) — markaziy blok perimetri. */
 export function buildNpcPaths(): THREE.Vector3[][] {
-  const loop = [
+  const loop1 = [
     new THREE.Vector3(-22, 0, 4),
     new THREE.Vector3(24, 0, 4),
     new THREE.Vector3(24, 0, -42),
     new THREE.Vector3(-22, 0, -42)
   ]
-  return [loop]
+  const loop2 = [
+    new THREE.Vector3(-20, 0, 32),
+    new THREE.Vector3(24, 0, 32),
+    new THREE.Vector3(24, 0, 56),
+    new THREE.Vector3(-20, 0, 56)
+  ]
+  return [loop1, loop2]
 }
 
 /** (x,z) yo'l ustidami (bino qo'ymaslik uchun). */
