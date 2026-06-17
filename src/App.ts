@@ -1,5 +1,5 @@
 // App — ekranlar oqimini boshqaradi: Launcher -> Qahramon yaratish -> Game.
-import { Launcher } from './ui/Launcher'
+import { Launcher, loadSettings } from './ui/Launcher'
 import { CharacterCreate } from './ui/CharacterCreate'
 import { Game } from './game/Game'
 import { GameState, type SerializedGame } from './game/GameState'
@@ -44,6 +44,9 @@ export class App {
     this.launcher.hide()
     this.creator.hide()
     this.game?.dispose()
+    const settings = loadSettings()
+    gs.settings.sensitivity = settings.sensitivity
+    gs.settings.defaultSpeed = settings.gameSpeed
     this.game = new Game(this.root, gs, { onExitToMenu: () => void this.exitToMenu() })
     this.game.start()
   }

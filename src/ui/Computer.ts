@@ -1,4 +1,4 @@
-// Kompyuter interfeysi — stolдаги ishxona "OS"i (Part 4: freelance, loyiha, portfolio, learning).
+// Kompyuter interfeysi — OS uslubida dizayner ish stoli (Phase 17).
 import { el } from './dom'
 import type { GameState } from '../game/GameState'
 import { COURSES, type Project } from '../data/jobs'
@@ -11,13 +11,13 @@ export interface ComputerCallbacks {
   onWork: (projectId: string, projectType: string) => void
 }
 
-const TABS: { id: string; name: string; icon: string }[] = [
-  { id: 'freelance', name: 'Freelance', icon: '🧑‍💻' },
-  { id: 'projects', name: 'Loyihalar', icon: '📁' },
-  { id: 'business', name: 'Biznes', icon: '🏢' },
-  { id: 'profile', name: 'Profil', icon: '🪪' },
-  { id: 'learn', name: "O'rganish", icon: '📚' },
-  { id: 'fun', name: 'Dam olish', icon: '🎮' }
+const APPS: { id: string; name: string; icon: string; desc: string }[] = [
+  { id: 'freelance', name: 'Freelance',  icon: '🧑‍💻', desc: 'Yangi buyurtmalar' },
+  { id: 'projects',  name: 'Loyihalar',  icon: '📁',   desc: 'Faol ishlar' },
+  { id: 'business',  name: 'Agentlik',   icon: '🏢',   desc: 'Biznes boshqaruv' },
+  { id: 'profile',   name: 'Profil',     icon: '🪪',   desc: 'Stats va yutuqlar' },
+  { id: 'learn',     name: "O'rganish",  icon: '📚',   desc: 'Kurslar' },
+  { id: 'fun',       name: 'Dam olish',  icon: '🎮',   desc: "O'yinlar" },
 ]
 
 function money(v: number): string {
@@ -32,8 +32,9 @@ function stars(n: number): string {
 
 export class Computer {
   private root: HTMLElement
-  private tabsEl: HTMLElement
+  private sidebar: HTMLElement
   private content: HTMLElement
+  private statusbar: HTMLElement
   private gs: GameState | null = null
   private tab = 'freelance'
   isOpen = false
@@ -70,17 +71,26 @@ export class Computer {
   private raceMsg = ''
 
   constructor(parent: HTMLElement, private cb: ComputerCallbacks) {
-    this.tabsEl = el('div', { class: 'pc-tabs' })
-    this.content = el('div', { class: 'pc-content' })
+    this.sidebar   = el('div', { class: 'pc-sidebar' })
+    this.content   = el('div', { class: 'pc-content' })
+    this.statusbar = el('div', { class: 'pc-statusbar' })
 
     this.root = el('div', { class: 'screen computer hidden' }, [
       el('div', { class: 'pc-window' }, [
         el('div', { class: 'pc-titlebar' }, [
+          el('div', { class: 'pc-traffic' }, [
+            el('button', { class: 'pc-dot red',    on: { click: () => this.close() } }),
+            el('button', { class: 'pc-dot yellow' }),
+            el('button', { class: 'pc-dot green' }),
+          ]),
           el('span', { class: 'pc-title', text: '🖥️  Designer OS' }),
-          el('button', { class: 'pc-close', text: '✕', on: { click: () => this.close() } })
+          el('div', { class: 'pc-win-version', text: 'v0.1' }),
         ]),
-        this.tabsEl,
-        this.content
+        el('div', { class: 'pc-body' }, [
+          this.sidebar,
+          this.content,
+        ]),
+        this.statusbar,
       ])
     ])
     parent.appendChild(this.root)
@@ -90,8 +100,9 @@ export class Computer {
     this.gs = gs
     this.tab = 'freelance'
     this.isOpen = true
-    this.renderTabs()
+    this.renderSidebar()
     this.render()
+    this.renderStatus()
     this.root.classList.remove('hidden')
   }
 
@@ -102,53 +113,61 @@ export class Computer {
     this.cb.onClose()
   }
 
-  /** Tashqi o'zgarishdan keyin (masalan studiyadan keyin) joriy tabni qayta chizadi. */
+  /** Tashqi o'zgarishdan keyin joriy tabni qayta chizadi. */
   refresh(): void {
-    if (this.isOpen) this.render()
+    if (this.isOpen && this.gs) { this.render(); this.renderStatus() }
   }
 
-  private renderTabs(): void {
-    this.tabsEl.replaceChildren(
-      ...TABS.map((t) =>
-        el('button', {
-          class: 'pc-tab' + (t.id === this.tab ? ' active' : ''),
-          text: `${t.icon} ${t.name}`,
-          on: {
-            click: () => {
-              this.tab = t.id
-              this.renderTabs()
-              this.render()
-            }
-          }
-        })
+  private renderSidebar(): void {
+    this.sidebar.replaceChildren(
+      el('div', { class: 'pc-app-list' },
+        APPS.map((a) =>
+          el('button', {
+            class: 'pc-app-btn' + (a.id === this.tab ? ' active' : ''),
+            on: { click: () => { this.tab = a.id; this.renderSidebar(); this.render() } }
+          }, [
+            el('span', { class: 'pc-app-icon', text: a.icon }),
+            el('div', { class: 'pc-app-info' }, [
+              el('div', { class: 'pc-app-name', text: a.name }),
+              el('div', { class: 'pc-app-desc', text: a.desc }),
+            ])
+          ])
+        )
       )
+    )
+  }
+
+  private renderStatus(): void {
+    const gs = this.gs!
+    const h = Math.floor((gs.time.totalMinutes % 1440) / 60)
+    const m = Math.floor(gs.time.totalMinutes % 60)
+    const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
+    const day = Math.floor(gs.time.totalMinutes / 1440) + 1
+    this.statusbar.replaceChildren(
+      el('span', { class: 'pc-status-time', text: `📅 Kun ${day}   🕐 ${timeStr}` }),
+      el('span', { class: 'pc-status-money', text: `💰 ${money(gs.money)} so'm` }),
+      el('span', { class: 'pc-status-energy', text: `⚡ ${Math.round(gs.needs.energy)}%` }),
     )
   }
 
   private render(): void {
     const gs = this.gs
     if (!gs) return
+    const app = APPS.find((a) => a.id === this.tab)
+    const header = el('div', { class: 'pc-app-header' }, [
+      el('span', { class: 'pc-app-header-icon', text: app?.icon ?? '' }),
+      el('span', { class: 'pc-app-header-name', text: app?.name ?? '' }),
+    ])
     let nodes: Node[]
     switch (this.tab) {
-      case 'projects':
-        nodes = this.renderProjects(gs)
-        break
-      case 'business':
-        nodes = this.renderBusiness(gs)
-        break
-      case 'profile':
-        nodes = this.renderProfile(gs)
-        break
-      case 'learn':
-        nodes = this.renderLearn(gs)
-        break
-      case 'fun':
-        nodes = this.renderFun(gs)
-        break
-      default:
-        nodes = this.renderFreelance(gs)
+      case 'projects':  nodes = this.renderProjects(gs);  break
+      case 'business':  nodes = this.renderBusiness(gs);  break
+      case 'profile':   nodes = this.renderProfile(gs);   break
+      case 'learn':     nodes = this.renderLearn(gs);     break
+      case 'fun':       nodes = this.renderFun(gs);       break
+      default:          nodes = this.renderFreelance(gs)
     }
-    this.content.replaceChildren(...nodes)
+    this.content.replaceChildren(header, ...nodes)
   }
 
   private renderFreelance(gs: GameState): Node[] {
