@@ -12,6 +12,7 @@ import {
   WEDDING_COST
 } from '../data/partners'
 import { INSPIRATIONS, formatFollowers } from '../data/pontorest'
+import { SOCIAL_POSTS, MOBILE_GAME } from '../data/distractions'
 
 interface AppDef {
   id: string
@@ -26,6 +27,8 @@ const APPS: AppDef[] = [
   { id: 'bank', name: 'Bank', icon: '🏦' },
   { id: 'map', name: 'Xarita', icon: '🗺️' },
   { id: 'pontorest', name: 'PontoRest', icon: '🎨' },
+  { id: 'social', name: 'Tarmoq', icon: '🌐' },
+  { id: 'game', name: 'O‘yin', icon: '🎮' },
   { id: 'calendar', name: 'Kalendar', icon: '📅' },
   { id: 'settings', name: 'Sozlama', icon: '⚙️' }
 ]
@@ -116,6 +119,10 @@ export class Phone {
         ]
       case 'pontorest':
         return this.renderPontoRest(gs)
+      case 'social':
+        return this.renderSocial(gs)
+      case 'game':
+        return this.renderGame(gs)
       case 'map':
         return [el('div', { class: 'ph-note', text: 'Megapolis xaritasi: uy, ofis, mijoz joylashuvi — tez orada.' })]
       default:
@@ -337,6 +344,37 @@ export class Phone {
     }
     nodes.push(el('div', { class: 'ph-note', text: `Moodboard: ${gs.moodboard.length} ta` }))
     return nodes
+  }
+
+  private renderSocial(gs: GameState | null): Node[] {
+    const mins = gs?.distractionToday ?? 0
+    return [
+      el('div', { class: 'ph-note', text: `Bugun chalg‘ish: ${Math.floor(mins / 60)}s ${mins % 60}d` }),
+      el(
+        'div',
+        { class: 'social-feed' },
+        SOCIAL_POSTS.slice(0, 6).map((p) => el('div', { class: 'social-post', text: p }))
+      ),
+      el('button', {
+        class: 'love-btn',
+        text: '🔄 Yana ko‘rish (vaqt ketadi)',
+        on: { click: () => { gs?.scrollSocial(); this.refresh() } }
+      })
+    ]
+  }
+
+  private renderGame(gs: GameState | null): Node[] {
+    return [
+      el('div', { class: 'mobile-game' }, [
+        el('div', { class: 'mg-title', text: `🎮 ${MOBILE_GAME}` }),
+        el('div', { class: 'ph-note', text: 'Tez kayfiyat — lekin ~45 daqiqa yeydi' })
+      ]),
+      el('button', {
+        class: 'love-btn',
+        text: 'O‘ynash',
+        on: { click: () => { gs?.playMobileGame(MOBILE_GAME); this.refresh() } }
+      })
+    ]
   }
 
   private renderBank(gs: GameState | null): Node[] {

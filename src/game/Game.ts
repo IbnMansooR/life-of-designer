@@ -91,6 +91,7 @@ export class Game {
     const r = this.gs.applyDailyFamily(day)
     const biz = this.gs.processAgencyDay()
     this.gs.processRelationshipDay()
+    this.gs.resetDistraction()
     this.gs.checkAchievements()
     void this.autoSave()
     if (r.neglected) {

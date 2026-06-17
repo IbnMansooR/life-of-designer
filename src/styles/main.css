@@ -1466,6 +1466,42 @@ button {
   justify-content: flex-end;
 }
 
+/* ============================================================
+   PHASE 14 — Distractions (tarmoq / o'yin)
+   ============================================================ */
+.social-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.social-post {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.mobile-game {
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.mg-title {
+  font-size: 18px;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.mobile-game .ph-note {
+  color: rgba(255, 255, 255, 0.85);
+}
+
 /* ---------- Toast ---------- */
 .toast {
   position: absolute;

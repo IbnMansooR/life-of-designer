@@ -98,6 +98,7 @@ Prinsip: **gameplay logikasi grafikadan mustaqil** — har bir tizim alohida mod
 - [x] **Phase 11 — Character Animation:** to'liq qo'l-oyoqli odam rig (yelka/tirsak/son/tizza/panja/oyoq), protsedural animatsiyalar — yurish, yugurish, o'tirish, yeyish, ichish, uxlash; player + barcha NPC'lar jonli
 - [x] **Phase 12 — World Generator:** tumanlar (downtown/business/residential/park), binolarga deraza teksturasi, yashash uylariga tom, parklar + daraxtlar, ko'cha daraxtlari — shahar ancha chiroyli
 - [x] **Phase 13 — Design Studio:** "Ishlash" endi shunchaki tugma emas — TZ (shart, masalan "ko'k doira + sariq uchburchak") chiqadi, mini-Photoshop'da shakl chizib topshirasan, sifatga qarab loyiha bajariladi
+- [x] **Phase 14 — Chalg'ituvchilar:** kompyuterda o'yinlar + internet, telefonда ijtimoiy tarmoq (cheksiz scroll) + mobil o'yin — kayfiyat beradi, lekin vaqtni yeydi; ko'p chalg'isang ogohlantiradi
 
 ---
 

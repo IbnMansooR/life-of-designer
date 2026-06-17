@@ -70,6 +70,7 @@ export interface SerializedGame {
   moodboard: string[]
   posts: number
   brandName: string
+  distractionToday: number
   timeMinutes: number
   position: Vec3
   rotationY: number
@@ -101,6 +102,8 @@ export class GameState {
   moodboard: string[] = []
   posts = 0
   brandName = ''
+  distractionToday = 0 // bugun chalg'ishga sarflangan daqiqalar
+  private distractWarned = false
   time = new GameTime()
   position: Vec3 = { x: 0, y: 0, z: 0 }
   rotationY = 0
@@ -188,6 +191,7 @@ export class GameState {
       moodboard: [...this.moodboard],
       posts: this.posts,
       brandName: this.brandName,
+      distractionToday: this.distractionToday,
       timeMinutes: this.time.totalMinutes,
       position: { ...this.position },
       rotationY: this.rotationY
@@ -229,6 +233,7 @@ export class GameState {
     gs.moodboard = data.moodboard ? [...data.moodboard] : []
     gs.posts = data.posts ?? 0
     gs.brandName = data.brandName ?? ''
+    gs.distractionToday = data.distractionToday ?? 0
     gs.time = new GameTime()
     gs.time.totalMinutes = data.timeMinutes
     gs.position = { ...data.position }
@@ -635,6 +640,45 @@ export class GameState {
   setBrand(name: string): void {
     this.brandName = name.trim().slice(0, 24)
     bus.emit(GameEvents.Toast, `Brend: ${this.brandName || '—'}`)
+  }
+
+  // ===== Chalg'ituvchi omillar (Part 8: kundalik hayot) =====
+
+  private addDistraction(min: number, mood: number, energy: number, stressDelta: number): void {
+    this.needs.mood = clamp(this.needs.mood + mood)
+    if (energy) this.needs.energy = clamp(this.needs.energy - energy)
+    if (stressDelta) this.needs.stress = clamp(this.needs.stress + stressDelta)
+    this.time.advance(min)
+    this.distractionToday += min
+    if (this.distractionToday >= 240 && !this.distractWarned) {
+      this.distractWarned = true
+      bus.emit(GameEvents.Toast, '😅 Bugun ancha chalg‘iding — ishni unutma!')
+    }
+    bus.emit(GameEvents.NeedsChanged, this.needs)
+  }
+
+  playComputerGame(name: string): void {
+    this.addDistraction(90, 12, 8, -8)
+    bus.emit(GameEvents.Toast, `🎮 ${name} o‘ynading`)
+  }
+
+  browseInternet(): void {
+    this.addDistraction(40, 4, 0, 0)
+    bus.emit(GameEvents.Toast, '🌐 Internetda yurding')
+  }
+
+  scrollSocial(): void {
+    this.addDistraction(20, 3, 0, 0)
+  }
+
+  playMobileGame(name: string): void {
+    this.addDistraction(45, 8, 5, -4)
+    bus.emit(GameEvents.Toast, `📱 ${name}`)
+  }
+
+  resetDistraction(): void {
+    this.distractionToday = 0
+    this.distractWarned = false
   }
 }
 

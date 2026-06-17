@@ -4,6 +4,7 @@ import type { GameState } from '../game/GameState'
 import { COURSES, type Project } from '../data/jobs'
 import { OFFICES, FOUND_COST, FOUND_PORTFOLIO, type Employee } from '../data/business'
 import { ACHIEVEMENTS } from '../data/achievements'
+import { COMPUTER_GAMES } from '../data/distractions'
 
 export interface ComputerCallbacks {
   onClose: () => void
@@ -15,7 +16,8 @@ const TABS: { id: string; name: string; icon: string }[] = [
   { id: 'projects', name: 'Loyihalar', icon: '📁' },
   { id: 'business', name: 'Biznes', icon: '🏢' },
   { id: 'profile', name: 'Profil', icon: '🪪' },
-  { id: 'learn', name: 'O‘rganish', icon: '📚' }
+  { id: 'learn', name: 'O‘rganish', icon: '📚' },
+  { id: 'fun', name: 'Dam olish', icon: '🎮' }
 ]
 
 function money(v: number): string {
@@ -108,6 +110,9 @@ export class Computer {
         break
       case 'learn':
         nodes = this.renderLearn(gs)
+        break
+      case 'fun':
+        nodes = this.renderFun(gs)
         break
       default:
         nodes = this.renderFreelance(gs)
@@ -228,6 +233,43 @@ export class Computer {
         ])
       ])
     )
+  }
+
+  private renderFun(gs: GameState): Node[] {
+    const mins = gs.distractionToday
+    const note = el('div', {
+      class: 'ph-note',
+      text: `Bugun chalg‘ish: ${Math.floor(mins / 60)} soat ${mins % 60} daq`
+    })
+    const games = COMPUTER_GAMES.map((g) =>
+      el('div', { class: 'job-card' }, [
+        el('div', { class: 'job-main' }, [
+          el('div', { class: 'job-title', text: `${g.emoji} ${g.name}` }),
+          el('div', { class: 'job-meta', text: 'Kayfiyat +, stress − · ~1.5 soat' })
+        ]),
+        el('div', { class: 'job-side' }, [
+          el('button', {
+            class: 'pc-btn',
+            text: 'O‘ynash',
+            on: { click: () => { gs.playComputerGame(g.name); this.render() } }
+          })
+        ])
+      ])
+    )
+    const internet = el('div', { class: 'job-card' }, [
+      el('div', { class: 'job-main' }, [
+        el('div', { class: 'job-title', text: '🌐 Internetda yurish' }),
+        el('div', { class: 'job-meta', text: 'Vaqt o‘tadi, kayfiyat biroz' })
+      ]),
+      el('div', { class: 'job-side' }, [
+        el('button', {
+          class: 'pc-btn',
+          text: 'Ochish',
+          on: { click: () => { gs.browseInternet(); this.render() } }
+        })
+      ])
+    ])
+    return [note, ...games, internet]
   }
 
   private renderBusiness(gs: GameState): Node[] {
