@@ -11,6 +11,7 @@ import {
   MARRY_THRESHOLD,
   WEDDING_COST
 } from '../data/partners'
+import { INSPIRATIONS, formatFollowers } from '../data/pontorest'
 
 interface AppDef {
   id: string
@@ -114,7 +115,7 @@ export class Phone {
           el('div', { class: 'ph-note', text: 'Uchrashuv va deadline’lar keyingi bosqichda.' })
         ]
       case 'pontorest':
-        return [el('div', { class: 'ph-note', text: 'Kreativ platforma: ilhom, moodboard, portfolio — tez orada.' })]
+        return this.renderPontoRest(gs)
       case 'map':
         return [el('div', { class: 'ph-note', text: 'Megapolis xaritasi: uy, ofis, mijoz joylashuvi — tez orada.' })]
       default:
@@ -269,6 +270,72 @@ export class Phone {
         )
       )
     }
+    return nodes
+  }
+
+  private renderPontoRest(gs: GameState | null): Node[] {
+    if (!gs) return [el('div', { class: 'ph-note', text: '...' })]
+    const rep = Math.round(gs.socialReputation)
+    const repFill = el('span')
+    repFill.style.width = `${rep}%`
+    repFill.style.background = 'var(--accent-2)'
+
+    const nodes: Node[] = []
+    if (!gs.brandName) {
+      const bi = el('input', {
+        class: 'biz-name',
+        attrs: { type: 'text', placeholder: 'Brend nomi', maxlength: '24' }
+      }) as HTMLInputElement
+      nodes.push(
+        el('div', { class: 'pr-brand' }, [
+          bi,
+          el('button', {
+            class: 'call-btn',
+            text: 'Saqlash',
+            on: { click: () => { gs.setBrand(bi.value); this.refresh() } }
+          })
+        ])
+      )
+    } else {
+      nodes.push(el('div', { class: 'pr-brandname', text: `🎨 ${gs.brandName}` }))
+    }
+
+    nodes.push(
+      el('div', { class: 'pr-stats' }, [
+        el('div', { class: 'pr-followers', text: `${formatFollowers(gs.followers)} obunachi` }),
+        el('div', { class: 'bar' }, [repFill]),
+        el('div', { class: 'ph-note', text: `Ijtimoiy obro': ${rep}/100 · postlar: ${gs.posts}` })
+      ])
+    )
+    nodes.push(
+      el('button', {
+        class: 'love-btn',
+        text: '📢 Ish e‘lon qilish',
+        on: { click: () => { gs.postWork(); this.refresh() } }
+      })
+    )
+
+    nodes.push(el('div', { class: 'love-sub', text: 'Ilhom' }))
+    for (const ins of INSPIRATIONS) {
+      const saved = gs.moodboard.includes(ins.id)
+      nodes.push(
+        el('div', { class: 'pr-insp' }, [
+          el('span', { class: 'pr-emoji', text: ins.emoji }),
+          el('div', { class: 'pr-itext' }, [
+            el('div', { class: 'pr-ititle', text: ins.title }),
+            el('div', { class: 'pr-icat', text: ins.category })
+          ]),
+          saved
+            ? el('span', { class: 'pr-saved', text: '✓' })
+            : el('button', {
+                class: 'call-btn',
+                text: 'Saqlash',
+                on: { click: () => { gs.saveInspiration(ins.id); this.refresh() } }
+              })
+        ])
+      )
+    }
+    nodes.push(el('div', { class: 'ph-note', text: `Moodboard: ${gs.moodboard.length} ta` }))
     return nodes
   }
 

@@ -25,6 +25,7 @@ import {
   MARRY_THRESHOLD,
   WEDDING_COST
 } from '../data/partners'
+import { POST_PORTFOLIO_MIN } from '../data/pontorest'
 
 export interface Needs {
   energy: number // 0..100 (uyqu/charchoq)
@@ -64,6 +65,11 @@ export interface SerializedGame {
   unlockedAchievements: string[]
   partner: Partner | null
   datingCandidates: Partner[]
+  followers: number
+  socialReputation: number
+  moodboard: string[]
+  posts: number
+  brandName: string
   timeMinutes: number
   position: Vec3
   rotationY: number
@@ -90,6 +96,11 @@ export class GameState {
   unlockedAchievements: string[] = []
   partner: Partner | null = null
   datingCandidates: Partner[] = []
+  followers = 0
+  socialReputation = 0 // 0..100
+  moodboard: string[] = []
+  posts = 0
+  brandName = ''
   time = new GameTime()
   position: Vec3 = { x: 0, y: 0, z: 0 }
   rotationY = 0
@@ -172,6 +183,11 @@ export class GameState {
         ...p,
         children: p.children.map((c) => ({ ...c }))
       })),
+      followers: this.followers,
+      socialReputation: this.socialReputation,
+      moodboard: [...this.moodboard],
+      posts: this.posts,
+      brandName: this.brandName,
       timeMinutes: this.time.totalMinutes,
       position: { ...this.position },
       rotationY: this.rotationY
@@ -208,6 +224,11 @@ export class GameState {
     gs.datingCandidates = data.datingCandidates
       ? data.datingCandidates.map((p) => ({ ...p, children: p.children.map((c) => ({ ...c })) }))
       : []
+    gs.followers = data.followers ?? 0
+    gs.socialReputation = data.socialReputation ?? 0
+    gs.moodboard = data.moodboard ? [...data.moodboard] : []
+    gs.posts = data.posts ?? 0
+    gs.brandName = data.brandName ?? ''
     gs.time = new GameTime()
     gs.time.totalMinutes = data.timeMinutes
     gs.position = { ...data.position }
@@ -585,6 +606,38 @@ export class GameState {
     }
     if (p.relationship > 60) this.needs.mood = clamp(this.needs.mood + 2)
     if (p.relationship <= 0) this.breakup()
+  }
+
+  // ===== PontoRest / Ijtimoiy (Part 5) =====
+
+  saveInspiration(id: string): void {
+    if (this.moodboard.includes(id)) return
+    this.moodboard.push(id)
+    this.skills.design = clamp(this.skills.design + 0.5)
+    this.needs.mood = clamp(this.needs.mood + 2)
+    bus.emit(GameEvents.Toast, 'Moodboard’ga saqlandi — ilhom +')
+    bus.emit(GameEvents.NeedsChanged, this.needs)
+  }
+
+  postWork(): void {
+    if (this.portfolio < POST_PORTFOLIO_MIN) {
+      bus.emit(GameEvents.Toast, `Avval portfolio ${POST_PORTFOLIO_MIN}+ bo‘lsin`)
+      return
+    }
+    const gain = Math.round(
+      10 + this.portfolio * 1.5 + this.socialReputation * 0.5 + this.moodboard.length
+    )
+    this.followers += gain
+    this.socialReputation = clamp(this.socialReputation + 3)
+    this.posts++
+    this.time.advance(60)
+    bus.emit(GameEvents.Toast, `📢 Post — +${gain} obunachi`)
+    this.checkAchievements()
+  }
+
+  setBrand(name: string): void {
+    this.brandName = name.trim().slice(0, 24)
+    bus.emit(GameEvents.Toast, `Brend: ${this.brandName || '—'}`)
   }
 }
 

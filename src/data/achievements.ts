@@ -17,5 +17,6 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'millionaire', title: 'Millioner', test: (g) => g.money >= 10_000_000 },
   { id: 'good_child', title: 'Mehribon farzand', test: (g) => g.familyRelationship >= 90 },
   { id: 'married', title: 'Turmush qurdi', test: (g) => g.partner?.status === 'married' },
-  { id: 'parent', title: 'Ota bo‘ldi', test: (g) => !!g.partner && g.partner.children.length > 0 }
+  { id: 'parent', title: 'Ota bo‘ldi', test: (g) => !!g.partner && g.partner.children.length > 0 },
+  { id: 'influencer', title: 'Influencer (1K)', test: (g) => g.followers >= 1000 }
 ]
