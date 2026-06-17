@@ -210,6 +210,7 @@ export class Game {
   }
 
   private doSleep(): void {
+    this.player.playAction('sleep', 2.5)
     const cur = this.gs.time.totalMinutes % 1440
     let delta = 7 * 60 - cur
     if (delta <= 0) delta += 1440
@@ -224,6 +225,7 @@ export class Game {
   }
 
   private doEat(): void {
+    this.player.playAction('eat', 2)
     this.gs.time.advance(20)
     const n = this.gs.needs
     n.hunger -= 45

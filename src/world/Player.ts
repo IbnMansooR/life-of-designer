@@ -4,6 +4,7 @@
 import * as THREE from 'three'
 import type { BoxCollider } from './World'
 import type { Appearance } from '../data/appearance'
+import { CharacterRig, type AnimState } from './CharacterRig'
 
 export type ViewMode = 'first' | 'third'
 
@@ -23,6 +24,10 @@ export class Player {
   /** Qarash/harakat yoqilganmi (telefon yoki pauza ochilganda o'chiriladi). */
   enabled = true
   private locked = false
+
+  private rig: CharacterRig
+  private actionTimer = 0
+  private actionState: AnimState = 'idle'
 
   private keys = new Set<string>()
   private readonly canvas: HTMLCanvasElement
@@ -50,48 +55,15 @@ export class Player {
   constructor(canvas: HTMLCanvasElement, appearance: Appearance) {
     this.canvas = canvas
     this.camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 500)
-    this.mesh = this.buildBody(appearance)
+    this.rig = new CharacterRig(appearance, true)
+    this.mesh = this.rig.group
     this.bindInput()
   }
 
-  /** 3-shaxsdagi ko'rinadigan tanani tashqi ko'rinishdan quradi. */
-  private buildBody(a: Appearance): THREE.Group {
-    const g = new THREE.Group()
-
-    const legs = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.28, 0.5, 4, 12),
-      new THREE.MeshStandardMaterial({ color: a.pants })
-    )
-    legs.position.y = 0.5
-    legs.castShadow = true
-    g.add(legs)
-
-    const torso = new THREE.Mesh(
-      new THREE.CapsuleGeometry(PLAYER_RADIUS, 0.6, 6, 14),
-      new THREE.MeshStandardMaterial({ color: a.shirt })
-    )
-    torso.position.y = 1.15
-    torso.castShadow = true
-    g.add(torso)
-
-    const head = new THREE.Mesh(
-      new THREE.SphereGeometry(0.27, 18, 18),
-      new THREE.MeshStandardMaterial({ color: a.skin })
-    )
-    head.position.y = 1.78
-    head.castShadow = true
-    g.add(head)
-
-    // Soch — boshning ustki qismini qoplaydigan yarim shar
-    const hair = new THREE.Mesh(
-      new THREE.SphereGeometry(0.29, 18, 18, 0, Math.PI * 2, 0, Math.PI * 0.62),
-      new THREE.MeshStandardMaterial({ color: a.hair })
-    )
-    hair.position.y = 1.8
-    hair.castShadow = true
-    g.add(hair)
-
-    return g
+  /** Qisqa muddatli harakat animatsiyasi (yeyish/uxlash) — shu vaqt davomida yurmaydi. */
+  playAction(state: AnimState, duration: number): void {
+    this.actionState = state
+    this.actionTimer = duration
   }
 
   private bindInput(): void {
@@ -121,11 +93,33 @@ export class Player {
 
   /** Har kadrda. dt — real sekund. */
   update(dt: number, colliders: BoxCollider[]): void {
-    if (this.enabled) this.move(dt, colliders)
+    if (this.actionTimer > 0) {
+      this.actionTimer -= dt
+      this.rig.setState(this.actionState)
+    } else {
+      if (this.enabled) this.move(dt, colliders)
+      const moving = this.enabled && this.isMovingInput()
+      this.rig.setState(moving ? (this.keys.has('ShiftLeft') ? 'run' : 'walk') : 'idle')
+    }
+    this.rig.update(dt)
     this.updateCamera()
     this.mesh.position.copy(this.position)
     this.mesh.rotation.y = this.yaw
     this.mesh.visible = this.view === 'third'
+  }
+
+  private isMovingInput(): boolean {
+    const k = this.keys
+    return (
+      k.has('KeyW') ||
+      k.has('KeyS') ||
+      k.has('KeyA') ||
+      k.has('KeyD') ||
+      k.has('ArrowUp') ||
+      k.has('ArrowDown') ||
+      k.has('ArrowLeft') ||
+      k.has('ArrowRight')
+    )
   }
 
   private move(dt: number, colliders: BoxCollider[]): void {

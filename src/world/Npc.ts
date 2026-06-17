@@ -2,6 +2,8 @@
 import * as THREE from 'three'
 import { makeLabel } from './label'
 import { buildNpcPaths } from './cityLayout'
+import { CharacterRig } from './CharacterRig'
+import type { Appearance } from '../data/appearance'
 
 const NAMES = [
   'Aziz',
@@ -20,55 +22,51 @@ const SKINS = [0xf1c9a5, 0xe8b48c, 0xc98a5e, 0xa86b3c]
 
 interface Npc {
   mesh: THREE.Group
+  rig: CharacterRig
   loop: THREE.Vector3[]
   seg: number
   dist: number
   speed: number
 }
 
+const HAIRS = [0x1a1410, 0x2b2118, 0x4a2f1a, 0x6b4423]
+const PANTS = [0x2b2f3a, 0x3a3f4a, 0x4a3a2a, 0x1b2030]
+
+function hex(n: number): string {
+  return '#' + n.toString(16).padStart(6, '0')
+}
+
 export class NpcManager {
   private npcs: Npc[] = []
 
-  constructor(scene: THREE.Scene, perLoop = 7) {
+  constructor(scene: THREE.Scene, perLoop = 5) {
     const loops = buildNpcPaths()
     let idx = 0
     for (const loop of loops) {
       const total = loopLength(loop)
       for (let i = 0; i < perLoop; i++) {
-        const mesh = this.buildPerson(
-          SHIRTS[idx % SHIRTS.length],
-          SKINS[idx % SKINS.length],
-          NAMES[idx % NAMES.length]
-        )
-        scene.add(mesh)
+        const rig = this.buildPerson(idx, NAMES[idx % NAMES.length])
+        scene.add(rig.group)
         const { seg, dist } = positionOnLoop(loop, (i / perLoop) * total)
-        this.npcs.push({ mesh, loop, seg, dist, speed: 1.0 + (idx % 4) * 0.18 })
+        this.npcs.push({ mesh: rig.group, rig, loop, seg, dist, speed: 1.0 + (idx % 4) * 0.18 })
         idx++
       }
     }
   }
 
-  private buildPerson(shirt: number, skin: number, name: string): THREE.Group {
-    const g = new THREE.Group()
-    const torso = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.32, 0.7, 5, 12),
-      new THREE.MeshStandardMaterial({ color: shirt })
-    )
-    torso.position.y = 1.0
-    torso.castShadow = true
-    g.add(torso)
-    const head = new THREE.Mesh(
-      new THREE.SphereGeometry(0.26, 14, 14),
-      new THREE.MeshStandardMaterial({ color: skin })
-    )
-    head.position.y = 1.62
-    head.castShadow = true
-    g.add(head)
+  private buildPerson(idx: number, name: string): CharacterRig {
+    const appearance: Appearance = {
+      skin: hex(SKINS[idx % SKINS.length]),
+      hair: hex(HAIRS[idx % HAIRS.length]),
+      shirt: hex(SHIRTS[idx % SHIRTS.length]),
+      pants: hex(PANTS[idx % PANTS.length])
+    }
+    const rig = new CharacterRig(appearance, false)
     const label = makeLabel(name)
     label.position.y = 2.05
     label.scale.set(1.6, 0.4, 1)
-    g.add(label)
-    return g
+    rig.group.add(label)
+    return rig
   }
 
   update(dt: number): void {
@@ -88,6 +86,8 @@ export class NpcManager {
       const f = n.dist / segLen
       n.mesh.position.set(from.x + (to.x - from.x) * f, 0, from.z + (to.z - from.z) * f)
       n.mesh.rotation.y = Math.atan2(to.x - from.x, to.z - from.z)
+      n.rig.setState('walk')
+      n.rig.update(dt)
     }
   }
 }

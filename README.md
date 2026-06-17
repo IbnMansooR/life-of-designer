@@ -95,6 +95,7 @@ Prinsip: **gameplay logikasi grafikadan mustaqil** — har bir tizim alohida mod
 - [x] **Phase 8 — Munosabat & Oila (Part 2):** tanishuv (dating), uchrashuv/sovg'a/vaqt, unashtirish, turmush qurish, farzand (o'sib boradi), e'tiborsizlik → ajralish — telefonда "Sevgi" ilovasi
 - [x] **Phase 9 — PontoRest & ijtimoiy (Part 5):** kreativ platforma (ilhom feed → moodboard, kreativlik oshadi), ijtimoiy media (ish e'lon qilish → obunachilar + ijtimoiy obro'), shaxsiy brend
 - [x] **Phase 10 — Polish & balans:** vaqt tezligini boshqarish (❚❚/1×/2×/4× HUD'da), ehtiyojlar balansi yumshatildi
+- [x] **Phase 11 — Character Animation:** to'liq qo'l-oyoqli odam rig (yelka/tirsak/son/tizza/panja/oyoq), protsedural animatsiyalar — yurish, yugurish, o'tirish, yeyish, ichish, uxlash; player + barcha NPC'lar jonli
 
 ---
 
