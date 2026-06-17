@@ -7,8 +7,10 @@ import { Phone } from '../ui/Phone'
 import { Inventory } from '../ui/Inventory'
 import { Computer } from '../ui/Computer'
 import { EventModal } from '../ui/EventModal'
+import { DesignStudio } from '../ui/DesignStudio'
 import { InteractPrompt } from '../ui/InteractPrompt'
 import { randomEvent } from '../data/events'
+import { makeBrief } from '../data/designTasks'
 import { GameLoop } from '../core/GameLoop'
 import { GameState, type SerializedGame } from './GameState'
 import { saveGame, loadGame } from '../core/Save'
@@ -29,6 +31,8 @@ export class Game {
   private inventory: Inventory
   private computer: Computer
   private eventModal: EventModal
+  private designStudio: DesignStudio
+  private workingProjectId = ''
   private interactPrompt: InteractPrompt
   private loop: GameLoop
   private pauseEl: HTMLElement
@@ -52,12 +56,21 @@ export class Game {
     this.hud = new HUD(root)
     this.phone = new Phone(root)
     this.inventory = new Inventory(root)
-    this.computer = new Computer(root, { onClose: () => this.setInteractive(true) })
+    this.computer = new Computer(root, {
+      onClose: () => this.setInteractive(true),
+      onWork: (id, type) => this.openDesignStudio(id, type)
+    })
     this.eventModal = new EventModal(root, {
       onChoice: (effect, result) => {
         this.gs.applyEventChoice(effect)
         showToast(result)
         this.setInteractive(true)
+      }
+    })
+    this.designStudio = new DesignStudio(root, {
+      onSubmit: (quality) => {
+        this.gs.submitDesignWork(this.workingProjectId, quality)
+        this.computer.refresh()
       }
     })
     this.interactPrompt = new InteractPrompt(root)
@@ -172,7 +185,8 @@ export class Game {
         break
       case 'Escape':
         if (this.eventModal.isOpen) break
-        if (this.computer.isOpen) this.computer.close()
+        if (this.designStudio.isOpen) this.designStudio.close()
+        else if (this.computer.isOpen) this.computer.close()
         else this.togglePause()
         break
       case 'F5':
@@ -207,6 +221,16 @@ export class Game {
     this.inventory.close()
     this.setInteractive(false)
     this.computer.open(this.gs)
+  }
+
+  /** "Ishlash" -> dizayn studiyasi (TZ bilan). */
+  private openDesignStudio(id: string, type: string): void {
+    if (this.gs.needs.energy < 12) {
+      showToast('Juda charchagansan — avval dam ol')
+      return
+    }
+    this.workingProjectId = id
+    this.designStudio.open(makeBrief(type))
   }
 
   private doSleep(): void {
@@ -322,6 +346,7 @@ export class Game {
     this.inventory.dispose()
     this.computer.dispose()
     this.eventModal.dispose()
+    this.designStudio.dispose()
     this.interactPrompt.dispose()
     this.pauseEl.remove()
     this.world.dispose()

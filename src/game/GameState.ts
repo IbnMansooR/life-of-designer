@@ -309,22 +309,19 @@ export class GameState {
     return true
   }
 
-  /** Loyiha ustida ishlash — progress oshadi, vaqt/energiya sarflanadi. */
-  workProject(id: string): void {
+  /** Dizayn studiyasidan keyin loyihaga progress (sifat 0..1 ga bog'liq). */
+  submitDesignWork(id: string, quality: number): void {
     const job = this.activeProjects.find((j) => j.id === id)
     if (!job) return
-    if (this.needs.energy < 12) {
-      bus.emit(GameEvents.Toast, 'Juda charchagansan — avval dam ol')
-      return
-    }
-    const gain = 22 + this.skills.design * 0.4 - job.difficulty * 3
-    job.progress = Math.min(100, job.progress + Math.max(10, gain))
-    this.skills.design = clamp(this.skills.design + 1.2)
+    const base = Math.max(8, 16 + this.skills.design * 0.4 - job.difficulty * 2)
+    const gain = base * (0.5 + quality) // sifat 0 -> 0.5x, sifat 1 -> 1.5x
+    job.progress = Math.min(100, job.progress + gain)
+    this.skills.design = clamp(this.skills.design + 1 + quality)
     this.needs.energy = clamp(this.needs.energy - 15)
     this.needs.stress = clamp(this.needs.stress + 9)
     this.needs.hunger = clamp(this.needs.hunger + 10)
     this.time.advance(150)
-    bus.emit(GameEvents.Toast, `Ishlayapsan… ${Math.round(job.progress)}%`)
+    bus.emit(GameEvents.Toast, `Ishlading — sifat ${Math.round(quality * 100)}% · ${Math.round(job.progress)}%`)
     bus.emit(GameEvents.NeedsChanged, this.needs)
   }
 

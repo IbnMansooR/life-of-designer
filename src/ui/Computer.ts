@@ -7,6 +7,7 @@ import { ACHIEVEMENTS } from '../data/achievements'
 
 export interface ComputerCallbacks {
   onClose: () => void
+  onWork: (projectId: string, projectType: string) => void
 }
 
 const TABS: { id: string; name: string; icon: string }[] = [
@@ -66,6 +67,11 @@ export class Computer {
     this.isOpen = false
     this.root.classList.add('hidden')
     this.cb.onClose()
+  }
+
+  /** Tashqi o'zgarishdan keyin (masalan studiyadan keyin) joriy tabni qayta chizadi. */
+  refresh(): void {
+    if (this.isOpen) this.render()
   }
 
   private renderTabs(): void {
@@ -169,12 +175,7 @@ export class Computer {
           : el('button', {
               class: 'pc-btn',
               text: 'Ishlash',
-              on: {
-                click: () => {
-                  gs.workProject(j.id)
-                  this.render()
-                }
-              }
+              on: { click: () => this.cb.onWork(j.id, j.type) }
             })
       ])
     ])
