@@ -66,9 +66,14 @@ export class Game {
 
   private onNewDay(day: number): void {
     const r = this.gs.applyDailyFamily(day)
+    const biz = this.gs.processAgencyDay()
     void this.autoSave()
     if (r.neglected) {
       showToast('📞 Onang sog‘indi — telefon qilsang yaxshi bo‘lardi')
+    }
+    if (biz) {
+      const sign = biz.net >= 0 ? '+' : ''
+      showToast(`🏢 Agentlik (kunlik): ${sign}${money(biz.net)} so'm`)
     }
   }
 
@@ -286,4 +291,10 @@ export class Game {
     this.pauseEl.remove()
     this.world.dispose()
   }
+}
+
+function money(v: number): string {
+  return Math.round(v)
+    .toString()
+    .replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
 }

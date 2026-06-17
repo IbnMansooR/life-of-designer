@@ -86,7 +86,7 @@ Prinsip: **gameplay logikasi grafikadan mustaqil** — har bir tizim alohida mod
 - [x] **Phase 3 — Basic City:** yo'l to'ri + trotuar, ko'p bino, harakatlanuvchi transport, yuruvchi NPC'lar, kun/tun sikli (chiroqlar tunda yonadi)
 - [x] **Phase 4 — Life Simulation:** oila aloqa darajasi (0–100), telefonda qo'ng'iroq, oilaga pul yuborish, e'tiborsizlik oqibati (onang sog'inadi), dinamik xabarlar
 - [x] **Phase 5 — Designer Career:** stolдаги kompyuter (Designer OS), freelance platforma (mijoz/byudjet/deadline), loyiha ustida ishlash → topshirish (pul + reputatsiya + portfolio), o'rganish kurslari, karera darajasi (Level 0→6)
-- [ ] **Phase 6 — Business System:** agentlik, xodimlar, ofis
+- [x] **Phase 6 — Business System:** o'z agentligingni ochish (Designer OS → Biznes), xodim yollash/bo'shatish, ofisni kengaytirish (capacity), har kuni daromad − maoshlar, kompaniya bosqichi (studio → xalqaro)
 - [ ] **Phase 7 — Complete World:** to'liq megapolis
 
 ---

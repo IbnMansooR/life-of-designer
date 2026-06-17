@@ -1040,6 +1040,66 @@ button {
   font-size: 14px;
 }
 
+/* ============================================================
+   PHASE 6 — Business (agency)
+   ============================================================ */
+.biz-found {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.biz-name {
+  padding: 10px 12px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.biz-name:focus {
+  border-color: var(--accent);
+}
+
+.biz-head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.biz-name-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.biz-agency-name {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.biz-title {
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.biz-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.biz-section-title {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
 /* ---------- Toast ---------- */
 .toast {
   position: absolute;

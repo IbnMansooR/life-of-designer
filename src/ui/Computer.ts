@@ -2,6 +2,7 @@
 import { el } from './dom'
 import type { GameState } from '../game/GameState'
 import { COURSES, type Project } from '../data/jobs'
+import { OFFICES, FOUND_COST, FOUND_PORTFOLIO, type Employee } from '../data/business'
 
 export interface ComputerCallbacks {
   onClose: () => void
@@ -10,6 +11,7 @@ export interface ComputerCallbacks {
 const TABS: { id: string; name: string; icon: string }[] = [
   { id: 'freelance', name: 'Freelance', icon: '🧑‍💻' },
   { id: 'projects', name: 'Loyihalar', icon: '📁' },
+  { id: 'business', name: 'Biznes', icon: '🏢' },
   { id: 'profile', name: 'Profil', icon: '🪪' },
   { id: 'learn', name: 'O‘rganish', icon: '📚' }
 ]
@@ -90,6 +92,9 @@ export class Computer {
     switch (this.tab) {
       case 'projects':
         nodes = this.renderProjects(gs)
+        break
+      case 'business':
+        nodes = this.renderBusiness(gs)
         break
       case 'profile':
         nodes = this.renderProfile(gs)
@@ -220,6 +225,76 @@ export class Computer {
         ])
       ])
     )
+  }
+
+  private renderBusiness(gs: GameState): Node[] {
+    if (!gs.agency) {
+      const can = gs.canFoundAgency()
+      const nameInput = el('input', {
+        class: 'biz-name',
+        attrs: { type: 'text', placeholder: 'Agentlik nomi', maxlength: '24' }
+      }) as HTMLInputElement
+      const foundBtn = el('button', {
+        class: 'pc-btn',
+        text: 'Agentlik ochish',
+        on: { click: () => { if (gs.foundAgency(nameInput.value)) this.render() } }
+      }) as HTMLButtonElement
+      foundBtn.disabled = !can
+      return [
+        el('div', { class: 'biz-found' }, [
+          el('div', { class: 'biz-section-title', text: 'O‘z agentligingni och' }),
+          el('div', { class: 'ph-note', text: `Shart: ${money(FOUND_COST)} so'm + portfolio ${FOUND_PORTFOLIO}` }),
+          el('div', { class: 'ph-note', text: `Sizda: ${money(gs.money)} so'm · portfolio ${Math.round(gs.portfolio)}` }),
+          nameInput,
+          foundBtn
+        ])
+      ]
+    }
+
+    const a = gs.agency
+    const cap = gs.officeCapacity
+    const office = OFFICES[a.officeLevel]
+    const hasNext = a.officeLevel + 1 < OFFICES.length
+    const nextOffice = hasNext ? OFFICES[a.officeLevel + 1] : null
+
+    const head = el('div', { class: 'biz-head' }, [
+      el('div', { class: 'biz-name-row' }, [
+        el('span', { class: 'biz-agency-name', text: a.name }),
+        el('span', { class: 'biz-title', text: gs.agencyTitle })
+      ]),
+      el('div', { class: 'ph-note', text: `Ofis: ${office.name} · xodimlar ${a.employees.length}/${cap}` }),
+      nextOffice
+        ? el('button', {
+            class: 'pc-btn',
+            text: `Ofisni kengaytirish → ${nextOffice.name} (${money(nextOffice.upgradeCost)})`,
+            on: { click: () => { gs.upgradeOffice(); this.render() } }
+          })
+        : el('div', { class: 'ph-note', text: 'Ofis maksimal darajada' })
+    ])
+
+    const empSection = el('div', { class: 'biz-section' }, [
+      el('div', { class: 'biz-section-title', text: 'Xodimlar' }),
+      ...(a.employees.length
+        ? a.employees.map((e) => this.empCard(e, 'Bo‘shatish', () => { gs.fireEmployee(e.id); this.render() }))
+        : [el('div', { class: 'ph-note', text: 'Hozircha xodim yo‘q' })])
+    ])
+
+    const candSection = el('div', { class: 'biz-section' }, [
+      el('div', { class: 'biz-section-title', text: 'Nomzodlar' }),
+      ...a.candidates.map((e) => this.empCard(e, 'Yollash', () => { gs.hireEmployee(e.id); this.render() }))
+    ])
+
+    return [head, empSection, candSection]
+  }
+
+  private empCard(e: Employee, btnText: string, onClick: () => void): HTMLElement {
+    return el('div', { class: 'job-card' }, [
+      el('div', { class: 'job-main' }, [
+        el('div', { class: 'job-title', text: e.name }),
+        el('div', { class: 'job-meta', text: `${e.role} · mahorat ${e.skill} · maosh ${money(e.salary)}/kun` })
+      ]),
+      el('div', { class: 'job-side' }, [el('button', { class: 'pc-btn', text: btnText, on: { click: onClick } })])
+    ])
   }
 
   dispose(): void {

@@ -6,6 +6,14 @@ import { getFamily } from '../data/families'
 import { type Appearance, DEFAULT_APPEARANCE } from '../data/appearance'
 import { STARTING_ITEMS } from '../data/items'
 import { type Project, type CareerLevel, generateJobs, careerLevel, COURSES } from '../data/jobs'
+import {
+  type Agency,
+  OFFICES,
+  FOUND_COST,
+  FOUND_PORTFOLIO,
+  generateCandidates,
+  agencyTitle
+} from '../data/business'
 
 export interface Needs {
   energy: number // 0..100 (uyqu/charchoq)
@@ -41,6 +49,7 @@ export interface SerializedGame {
   completedProjects: number
   availableJobs: Project[]
   activeProjects: Project[]
+  agency: Agency | null
   timeMinutes: number
   position: Vec3
   rotationY: number
@@ -63,6 +72,7 @@ export class GameState {
   completedProjects = 0
   availableJobs: Project[] = []
   activeProjects: Project[] = []
+  agency: Agency | null = null
   time = new GameTime()
   position: Vec3 = { x: 0, y: 0, z: 0 }
   rotationY = 0
@@ -129,6 +139,13 @@ export class GameState {
       completedProjects: this.completedProjects,
       availableJobs: this.availableJobs.map((j) => ({ ...j })),
       activeProjects: this.activeProjects.map((j) => ({ ...j })),
+      agency: this.agency
+        ? {
+            ...this.agency,
+            employees: this.agency.employees.map((e) => ({ ...e })),
+            candidates: this.agency.candidates.map((e) => ({ ...e }))
+          }
+        : null,
       timeMinutes: this.time.totalMinutes,
       position: { ...this.position },
       rotationY: this.rotationY
@@ -151,6 +168,13 @@ export class GameState {
     gs.completedProjects = data.completedProjects ?? 0
     gs.availableJobs = data.availableJobs ? data.availableJobs.map((j) => ({ ...j })) : generateJobs(4)
     gs.activeProjects = data.activeProjects ? data.activeProjects.map((j) => ({ ...j })) : []
+    gs.agency = data.agency
+      ? {
+          ...data.agency,
+          employees: data.agency.employees.map((e) => ({ ...e })),
+          candidates: data.agency.candidates.map((e) => ({ ...e }))
+        }
+      : null
     gs.time = new GameTime()
     gs.time.totalMinutes = data.timeMinutes
     gs.position = { ...data.position }
@@ -284,6 +308,94 @@ export class GameState {
     this.time.advance(course.hours * 60)
     bus.emit(GameEvents.Toast, `📚 ${course.name} — dizayn +${course.skillGain}`)
     bus.emit(GameEvents.NeedsChanged, this.needs)
+  }
+
+  // ===== Biznes / Agentlik (Part 4) =====
+
+  canFoundAgency(): boolean {
+    return !this.agency && this.money >= FOUND_COST && this.portfolio >= FOUND_PORTFOLIO
+  }
+
+  foundAgency(name: string): boolean {
+    if (!this.canFoundAgency()) {
+      bus.emit(GameEvents.Toast, `Shart: ${formatSom(FOUND_COST)} so'm + portfolio ${FOUND_PORTFOLIO}`)
+      return false
+    }
+    this.addMoney(-FOUND_COST)
+    this.agency = {
+      name: name.trim() || 'Studio',
+      foundedDay: this.time.day,
+      officeLevel: 0,
+      employees: [],
+      candidates: generateCandidates(4)
+    }
+    bus.emit(GameEvents.Toast, `🏢 "${this.agency.name}" agentligi ochildi!`)
+    return true
+  }
+
+  get officeCapacity(): number {
+    return this.agency ? OFFICES[this.agency.officeLevel].capacity : 0
+  }
+
+  get agencyTitle(): string {
+    return this.agency ? agencyTitle(this.agency.employees.length) : ''
+  }
+
+  hireEmployee(id: string): void {
+    const a = this.agency
+    if (!a) return
+    if (a.employees.length >= this.officeCapacity) {
+      bus.emit(GameEvents.Toast, 'Ofis to‘la — avval kengaytiring')
+      return
+    }
+    const idx = a.candidates.findIndex((e) => e.id === id)
+    if (idx < 0) return
+    const [emp] = a.candidates.splice(idx, 1)
+    a.employees.push(emp)
+    if (a.candidates.length < 3) a.candidates.push(...generateCandidates(3 - a.candidates.length))
+    bus.emit(GameEvents.Toast, `${emp.name} (${emp.role}) ishga olindi`)
+  }
+
+  fireEmployee(id: string): void {
+    const a = this.agency
+    if (!a) return
+    const idx = a.employees.findIndex((e) => e.id === id)
+    if (idx < 0) return
+    const [emp] = a.employees.splice(idx, 1)
+    bus.emit(GameEvents.Toast, `${emp.name} ishdan bo‘shatildi`)
+  }
+
+  upgradeOffice(): void {
+    const a = this.agency
+    if (!a) return
+    const next = a.officeLevel + 1
+    if (next >= OFFICES.length) {
+      bus.emit(GameEvents.Toast, 'Ofis allaqachon maksimal')
+      return
+    }
+    const cost = OFFICES[next].upgradeCost
+    if (this.money < cost) {
+      bus.emit(GameEvents.Toast, 'Mablag‘ yetarli emas')
+      return
+    }
+    this.addMoney(-cost)
+    a.officeLevel = next
+    bus.emit(GameEvents.Toast, `🏢 Ofis kengaydi: ${OFFICES[next].name}`)
+  }
+
+  /** Har kunda — agentlik daromadi minus maoshlar (Part 4: company management). */
+  processAgencyDay(): { income: number; salaries: number; net: number } | null {
+    const a = this.agency
+    if (!a || a.employees.length === 0) return null
+    let income = 0
+    let salaries = 0
+    for (const e of a.employees) {
+      income += e.skill * 8000
+      salaries += e.salary
+    }
+    const net = income - salaries
+    this.addMoney(net)
+    return { income, salaries, net }
   }
 }
 
