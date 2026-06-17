@@ -8,6 +8,8 @@ export class HUD {
   private clockSmall!: HTMLElement
   private moneyBig!: HTMLElement
   private bars: Record<string, HTMLElement> = {}
+  private gs: GameState | null = null
+  private speedButtons: { speed: number; btn: HTMLButtonElement }[] = []
 
   constructor(parent: HTMLElement) {
     this.clockBig = el('div', { class: 'big', text: '07:00' })
@@ -35,7 +37,8 @@ export class HUD {
           needRow('food', 'To‘qlik'),
           needRow('stress', 'Stress'),
           needRow('mood', 'Kayfiyat')
-        ])
+        ]),
+        this.buildSpeedControl()
       ]),
       el('div', {
         class: 'hud-hint',
@@ -45,7 +48,30 @@ export class HUD {
     parent.appendChild(this.root)
   }
 
+  /** Vaqt tezligini boshqarish (Polish: 1 kun = 45 daq, shuning uchun tezlatish kerak). */
+  private buildSpeedControl(): HTMLElement {
+    const speeds: [number, string][] = [
+      [0, '❚❚'],
+      [1, '1×'],
+      [2, '2×'],
+      [4, '4×']
+    ]
+    const btns = speeds.map(([sp, label]) => {
+      const btn = el('button', { class: 'speed-btn', text: label }) as HTMLButtonElement
+      btn.addEventListener('click', () => {
+        if (this.gs) this.gs.time.speed = sp
+      })
+      this.speedButtons.push({ speed: sp, btn })
+      return btn
+    })
+    return el('div', { class: 'hud-card hud-speed' }, [
+      el('div', { class: 'small', text: 'TEZLIK' }),
+      el('div', { class: 'speed-row' }, btns)
+    ])
+  }
+
   update(gs: GameState): void {
+    this.gs = gs
     this.clockBig.textContent = gs.time.clock
     this.clockSmall.textContent = `${gs.time.day}-kun • ${gs.time.partOfDay}`
     this.moneyBig.textContent = `${formatMoney(gs.money)} so'm`
@@ -55,6 +81,10 @@ export class HUD {
     this.setBar('food', 100 - n.hunger, true) // to'qlik = teskari ochlik
     this.setBar('stress', n.stress, false) // stress past bo'lgani yaxshi
     this.setBar('mood', n.mood, true)
+
+    for (const s of this.speedButtons) {
+      s.btn.classList.toggle('active', gs.time.speed === s.speed)
+    }
   }
 
   private setBar(key: string, value: number, highIsGood: boolean): void {

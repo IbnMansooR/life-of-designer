@@ -331,6 +331,42 @@ button {
   border: 1px solid var(--line);
 }
 
+/* Vaqt tezligi (Phase 10) */
+.hud-speed {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.speed-row {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.speed-btn {
+  width: 30px;
+  height: 26px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text-dim);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.speed-btn:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.speed-btn.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
 /* ---------- PHONE ---------- */
 .phone {
   position: absolute;

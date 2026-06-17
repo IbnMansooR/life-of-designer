@@ -94,7 +94,7 @@ Prinsip: **gameplay logikasi grafikadan mustaqil** — har bir tizim alohida mod
 ### Kengaytmalar (roadmapdan keyin)
 - [x] **Phase 8 — Munosabat & Oila (Part 2):** tanishuv (dating), uchrashuv/sovg'a/vaqt, unashtirish, turmush qurish, farzand (o'sib boradi), e'tiborsizlik → ajralish — telefonда "Sevgi" ilovasi
 - [x] **Phase 9 — PontoRest & ijtimoiy (Part 5):** kreativ platforma (ilhom feed → moodboard, kreativlik oshadi), ijtimoiy media (ish e'lon qilish → obunachilar + ijtimoiy obro'), shaxsiy brend
-- [ ] **Phase 10 — Polish & balans** — keyingi
+- [x] **Phase 10 — Polish & balans:** vaqt tezligini boshqarish (❚❚/1×/2×/4× HUD'da), ehtiyojlar balansi yumshatildi
 
 ---
 

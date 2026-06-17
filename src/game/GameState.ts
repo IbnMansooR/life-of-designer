@@ -129,8 +129,8 @@ export class GameState {
   /** Ehtiyojlarni vaqt o'tishi bilan yangilaydi. dtMinutes — o'tgan game-daqiqalar. */
   updateNeeds(dtMinutes: number): void {
     const n = this.needs
-    n.energy = clamp(n.energy - dtMinutes * 0.03)
-    n.hunger = clamp(n.hunger + dtMinutes * 0.04)
+    n.energy = clamp(n.energy - dtMinutes * 0.025)
+    n.hunger = clamp(n.hunger + dtMinutes * 0.035)
     // Och va charchagan bo'lsa stress oshadi
     const pressure = (n.hunger > 70 ? 0.02 : 0) + (n.energy < 25 ? 0.02 : 0)
     n.stress = clamp(n.stress + dtMinutes * pressure - dtMinutes * 0.005)
