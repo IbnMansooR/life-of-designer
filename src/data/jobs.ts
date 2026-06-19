@@ -1,4 +1,5 @@
 // Karera ma'lumotlari — freelance ishlar, mijozlar, kurslar, daraja (Part 4).
+import type { DesignBrief } from './designTasks'
 
 export interface Project {
   id: string
@@ -9,6 +10,9 @@ export interface Project {
   difficulty: number // 1..3
   deadlineDays: number
   progress: number // 0..100
+  quality?: number // 0..1 — ish jarayonidagi o'rtacha sifat (brief'ga moslik)
+  brief?: DesignBrief // loyihaga biriktirilgan barqaror TZ (save/load orasida ham saqlanadi)
+  satisfiedTargets?: number[] // bajarilgan brief target indekslari (qayta farmni oldini oladi)
 }
 
 export interface Course {

@@ -1,4 +1,5 @@
-// Dizayn studiyasi — boyitilgan TZ panel + chizish kenvasi (Phase 17).
+// Dizayn studiyasi — boyitilgan TZ panel + JONLI ish jarayoni (Phase 18).
+// Har bir qo'yilgan shakl loyiha progressini real-time siljitadi.
 import { el } from './dom'
 import {
   type DesignBrief,
@@ -6,9 +7,13 @@ import {
   SHAPE_LABEL,
   SHAPES,
 } from '../data/designTasks'
+import type { DesignActionResult } from '../game/GameState'
 
 export interface DesignStudioCallbacks {
-  onSubmit: (quality: number) => void
+  // Har bir amal (shakl qo'yish) uchun: jonli progress qo'llaydi, natijani qaytaradi.
+  onAction: (actionQuality: number) => DesignActionResult
+  // Yangi brief target bajarilganda — loyihaga saqlash uchun (qayta farmni oldini oladi).
+  onSatisfy?: (targetIndex: number) => void
   onClose?: () => void
 }
 
@@ -24,19 +29,28 @@ export class DesignStudio {
   private canvas: HTMLCanvasElement
   private ctx: CanvasRenderingContext2D
   private briefPanel!: HTMLElement
+  private progFill!: HTMLElement
+  private progLabel!: HTMLElement
+  private gainLabel!: HTMLElement
+  private energyLabel!: HTMLElement
+  private doneBanner!: HTMLElement
   private toolButtons: { shape: ShapeType; btn: HTMLButtonElement }[] = []
   private colorButtons: HTMLButtonElement[] = []
   private undoStack: Placed[][] = []
   private brief: DesignBrief | null = null
   private placed: Placed[] = []
+  private satisfied = new Set<number>()  // bajarilgan brief target indekslari
   private selShape: ShapeType = 'circle'
   private selColor = '#3b82f6'
+  private progress = 0
+  private finished = false
+  private exhausted = false
   isOpen = false
 
   constructor(parent: HTMLElement, private cb: DesignStudioCallbacks) {
     this.canvas = el('canvas', {
       class: 'ds-canvas',
-      attrs: { width: '440', height: '320' }
+      attrs: { width: '440', height: '300' }
     }) as HTMLCanvasElement
     this.ctx = this.canvas.getContext('2d')!
     this.canvas.addEventListener('click', (e) => this.onCanvasClick(e))
@@ -55,6 +69,22 @@ export class DesignStudio {
 
     this.briefPanel = el('div', { class: 'ds-brief-panel' })
 
+    // Jonli progress bar
+    this.progFill = el('span', { class: 'ds-progress-fill' })
+    this.progLabel = el('span', { class: 'ds-progress-pct', text: '0%' })
+    this.gainLabel = el('span', { class: 'ds-progress-gain' })
+    this.energyLabel = el('span', { class: 'ds-energy', text: '⚡ 100%' })
+    const progressBar = el('div', { class: 'ds-progress-wrap' }, [
+      el('div', { class: 'ds-progress-head' }, [
+        el('span', { class: 'ds-progress-title', text: '🛠 Loyiha bajarilishi' }),
+        this.gainLabel,
+        this.progLabel,
+        this.energyLabel,
+      ]),
+      el('div', { class: 'ds-progress-track' }, [this.progFill]),
+    ])
+    this.doneBanner = el('div', { class: 'ds-done-banner hidden', text: '✅ Loyiha tayyor! "Tugatish"ni bosib topshirishga o\'ting.' })
+
     this.root = el('div', { class: 'screen design-studio hidden' }, [
       el('div', { class: 'ds-window' }, [
         el('div', { class: 'ds-titlebar' }, [
@@ -64,6 +94,8 @@ export class DesignStudio {
         el('div', { class: 'ds-body' }, [
           this.briefPanel,
           el('div', { class: 'ds-right' }, [
+            progressBar,
+            this.doneBanner,
             el('div', { class: 'ds-toolbar' }, [
               el('span', { class: 'ds-label', text: 'Shakl:' }),
               shapeRow,
@@ -72,9 +104,10 @@ export class DesignStudio {
             ]),
             this.canvas,
             el('div', { class: 'ds-actions' }, [
-              el('button', { class: 'btn-ghost', text: 'Bekor qil', on: { click: () => this.undo() } }),
-              el('button', { class: 'btn-ghost', text: 'Tozalash', on: { click: () => { this.placed = []; this.undoStack = []; this.redraw() } } }),
-              el('button', { class: 'btn-cta', text: 'Topshirish', on: { click: () => this.submit() } })
+              el('span', { class: 'ds-actions-hint', text: 'Varaq vizual — ish progressi yuqorida saqlanadi' }),
+              el('button', { class: 'btn-ghost', text: '↶ Shaklni o\'chir', on: { click: () => this.undo() } }),
+              el('button', { class: 'btn-ghost', text: 'Varaqni tozala', on: { click: () => { this.placed = []; this.undoStack = []; this.redraw() } } }),
+              el('button', { class: 'btn-cta', text: 'Tugatish', on: { click: () => this.close() } })
             ])
           ])
         ])
@@ -83,16 +116,26 @@ export class DesignStudio {
     parent.appendChild(this.root)
   }
 
-  open(brief: DesignBrief): void {
+  /**
+   * brief = loyiha TZ; startProgress = joriy progress; startEnergy = energiya;
+   * satisfied = avval bajarilgan target indekslari (qayta ochishda dedupe saqlanadi).
+   */
+  open(brief: DesignBrief, startProgress: number, startEnergy: number, satisfied: number[] = []): void {
     this.brief = brief
     this.placed = []
     this.undoStack = []
+    this.satisfied = new Set(satisfied)
     this.selShape = 'circle'
     this.selColor = brief.palette[0]?.hex ?? '#3b82f6'
+    this.progress = startProgress
+    this.finished = startProgress >= 100
+    this.exhausted = false
     this.buildBriefPanel(brief)
     this.buildColorRow(brief)
     this.refreshTools()
     this.redraw()
+    this.updateProgress(startProgress, 0, startEnergy, this.finished)
+    this.markGoals()
     this.isOpen = true
     this.root.classList.remove('hidden')
   }
@@ -103,20 +146,36 @@ export class DesignStudio {
     this.cb.onClose?.()
   }
 
+  private updateProgress(progress: number, gain: number, energy: number, done: boolean): void {
+    this.progress = progress
+    this.progFill.style.width = `${Math.round(progress)}%`
+    this.progFill.style.background = done ? 'var(--good)' : 'var(--accent)'
+    this.progLabel.textContent = `${Math.round(progress)}%`
+    this.energyLabel.textContent = `⚡ ${Math.round(energy)}%`
+    this.energyLabel.classList.toggle('low', energy <= 20)
+    if (gain > 0) {
+      this.gainLabel.textContent = `+${gain.toFixed(1)}%`
+      this.gainLabel.classList.remove('hidden')
+      // qisqa flash
+      this.gainLabel.classList.remove('flash')
+      void this.gainLabel.offsetWidth // reflow — animatsiyani qayta ishga tushirish
+      this.gainLabel.classList.add('flash')
+    } else {
+      this.gainLabel.classList.add('hidden')
+    }
+    this.doneBanner.classList.toggle('hidden', !done)
+  }
+
+  // ── Brief panel ────────────────────────────────────────────────────────────
   private buildBriefPanel(b: DesignBrief): void {
     this.briefPanel.innerHTML = ''
 
-    // Mijoz va tur
     const header = el('div', { class: 'ds-bp-header' }, [
       el('div', { class: 'ds-bp-type', text: b.projectType.toUpperCase() }),
       el('div', { class: 'ds-bp-client', text: b.client }),
       el('div', { class: 'ds-bp-industry', text: b.industry }),
     ])
-
-    // Tavsif
     const desc = el('div', { class: 'ds-bp-desc', text: b.description })
-
-    // Stil teglari
     const tags = el('div', { class: 'ds-bp-tags' },
       b.style.map((s) => {
         const t = el('span', { class: 'ds-tag', text: s.label })
@@ -125,42 +184,46 @@ export class DesignStudio {
         return t
       })
     )
-
-    // Talablar
     const reqTitle = el('div', { class: 'ds-bp-section', text: '📋 Talablar' })
-    const reqList = el('ul', { class: 'ds-bp-list' },
-      b.requirements.map((r) => el('li', { text: r }))
+    const reqList = el('ul', { class: 'ds-bp-list' }, b.requirements.map((r) => el('li', { text: r })))
+
+    // Maqsadli shakllar (checklist) — qaysi shakl+rang kombinatsiyalari kerak
+    const goalTitle = el('div', { class: 'ds-bp-section', text: '🎯 Kerakli elementlar' })
+    const goalList = el('div', { class: 'ds-goals' },
+      b.targets.map((t, i) => {
+        const dot = el('span', { class: 'ds-goal-dot' })
+        dot.style.background = t.color.hex
+        const row = el('div', { class: 'ds-goal-row', attrs: { 'data-goal': String(i) } }, [
+          dot,
+          el('span', { class: 'ds-goal-text', text: `${t.color.name} ${SHAPE_LABEL[t.shape]}` }),
+          el('span', { class: 'ds-goal-check', text: '○' }),
+        ])
+        return row
+      })
     )
 
-    // Rang palitasi
     const palTitle = el('div', { class: 'ds-bp-section', text: '🎨 Rang palitasi' })
     const palette = el('div', { class: 'ds-bp-palette' },
       b.palette.map((c) => {
         const swatch = el('div', { class: 'ds-swatch' })
         swatch.style.background = c.hex
         swatch.title = `${c.name} ${c.hex}`
-        swatch.addEventListener('click', () => {
-          this.selColor = c.hex
-          this.refreshColorButtons()
-        })
+        swatch.addEventListener('click', () => { this.selColor = c.hex; this.refreshColorButtons() })
         const label = el('div', { class: 'ds-swatch-label', text: c.name })
-        const wrap = el('div', { class: 'ds-swatch-wrap' }, [swatch, label])
-        return wrap
+        return el('div', { class: 'ds-swatch-wrap' }, [swatch, label])
       })
     )
 
-    // Mood board
     const moodTitle = el('div', { class: 'ds-bp-section', text: '✨ Mood board' })
     const mood = el('div', { class: 'ds-mood-grid' },
       b.mood.map((m) => {
         const tile = el('div', { class: 'ds-mood-tile' })
         tile.style.background = m.color
-        const lbl = el('div', { class: 'ds-mood-label', text: m.label })
-        return el('div', { class: 'ds-mood-wrap' }, [tile, lbl])
+        return el('div', { class: 'ds-mood-wrap' }, [tile, el('div', { class: 'ds-mood-label', text: m.label })])
       })
     )
 
-    this.briefPanel.append(header, desc, tags, reqTitle, reqList, palTitle, palette, moodTitle, mood)
+    this.briefPanel.append(header, desc, tags, goalTitle, goalList, reqTitle, reqList, palTitle, palette, moodTitle, mood)
   }
 
   private buildColorRow(b: DesignBrief): void {
@@ -168,14 +231,11 @@ export class DesignStudio {
     if (!row) return
     row.innerHTML = ''
     this.colorButtons = []
-
-    // Brief palitasidan + extra ranglar
     const extraHex = ['#ffffff', '#0f172a', '#ef4444', '#eab308', '#22c55e']
     const allColors = [
       ...b.palette.map((c) => c.hex),
       ...extraHex.filter((h) => !b.palette.some((c) => c.hex === h))
     ]
-
     allColors.forEach((hex) => {
       const btn = el('button', { class: 'ds-color' }) as HTMLButtonElement
       btn.style.background = hex
@@ -188,39 +248,100 @@ export class DesignStudio {
   }
 
   private refreshTools(): void {
-    for (const t of this.toolButtons) {
-      t.btn.classList.toggle('active', t.shape === this.selShape)
-    }
+    for (const t of this.toolButtons) t.btn.classList.toggle('active', t.shape === this.selShape)
     this.refreshColorButtons()
   }
 
   private refreshColorButtons(): void {
     for (const btn of this.colorButtons) {
-      btn.classList.toggle('active', btn.style.background === this.selColor ||
-        this.normalizeHex(btn.style.background) === this.selColor)
+      btn.classList.toggle('active', this.normalizeHex(btn.style.background) === this.selColor.toLowerCase())
     }
-    // Swatch'lardagi highlight
     const swatches = this.briefPanel.querySelectorAll<HTMLElement>('.ds-swatch')
     swatches.forEach((sw) => {
-      sw.classList.toggle('active', sw.style.background === this.selColor ||
-        this.normalizeHex(sw.style.background) === this.selColor)
+      sw.classList.toggle('active', this.normalizeHex(sw.style.background) === this.selColor.toLowerCase())
     })
   }
 
   private normalizeHex(cssColor: string): string {
-    // rgb(r,g,b) -> #rrggbb (browser inline style ni hex ga)
     const m = cssColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/)
-    if (!m) return cssColor
+    if (!m) return cssColor.toLowerCase()
     return '#' + [m[1], m[2], m[3]].map((n) => parseInt(n).toString(16).padStart(2, '0')).join('')
   }
 
+  // ── Amal: shakl qo'yish → jonli progress ────────────────────────────────────
   private onCanvasClick(e: MouseEvent): void {
+    // Tugagan yoki charchagan — shakl chizish mumkin, lekin progress qo'shilmaydi.
+    if (this.finished || this.exhausted) {
+      this.placeShape(e)
+      return
+    }
+    const placed = this.placeShape(e)
+    const q = this.actionQuality(placed)
+    const r = this.cb.onAction(q)
+    this.updateProgress(r.progress, r.gain, r.energy, r.done)
+    this.markGoals()
+    if (r.done) {
+      this.finished = true
+    } else if (r.exhausted) {
+      // Charchadi — sessiya bloklanadi; dam olib, qaytadan kirish kerak.
+      this.exhausted = true
+      this.doneBanner.classList.remove('hidden')
+      this.doneBanner.textContent = '😪 Juda charchadingiz — "Tugatish"ni bosib dam oling, keyin davom etasiz.'
+    }
+  }
+
+  private placeShape(e: MouseEvent): Placed {
     const rect = this.canvas.getBoundingClientRect()
     const x = (e.clientX - rect.left) * (this.canvas.width / rect.width)
     const y = (e.clientY - rect.top) * (this.canvas.height / rect.height)
     this.undoStack.push([...this.placed])
-    this.placed.push({ shape: this.selShape, hex: this.selColor, x, y })
+    const p: Placed = { shape: this.selShape, hex: this.selColor, x, y }
+    this.placed.push(p)
     this.redraw()
+    return p
+  }
+
+  /**
+   * Amal sifati 0..1:
+   *  - yangi (hali bajarilmagan) target shakl+rang → 1.0 (va belgilanadi)
+   *  - bajarilgan target takrori (shakl+rang) → 0.55
+   *  - faqat rang YOKI faqat shakl mos → 0.35
+   *  - umuman mos emas → 0.12
+   */
+  private actionQuality(p: Placed): number {
+    if (!this.brief) return 0.5
+    const targets = this.brief.targets
+    const hex = p.hex.toLowerCase()
+
+    // Yangi to'liq mos target
+    for (let i = 0; i < targets.length; i++) {
+      if (this.satisfied.has(i)) continue
+      if (targets[i].shape === p.shape && targets[i].color.hex.toLowerCase() === hex) {
+        this.satisfied.add(i)
+        this.cb.onSatisfy?.(i) // loyihaga saqlash — qayta ochishda farm bo'lmaydi
+        return 1.0
+      }
+    }
+    // Bajarilgan target takrori
+    const fullRepeat = targets.some((t) => t.shape === p.shape && t.color.hex.toLowerCase() === hex)
+    if (fullRepeat) return 0.55
+    // Qisman moslik
+    const colorMatch = targets.some((t) => t.color.hex.toLowerCase() === hex)
+    const shapeMatch = targets.some((t) => t.shape === p.shape)
+    if (colorMatch || shapeMatch) return 0.35
+    return 0.12
+  }
+
+  private markGoals(): void {
+    const rows = this.briefPanel.querySelectorAll<HTMLElement>('.ds-goal-row')
+    rows.forEach((row) => {
+      const idx = Number(row.getAttribute('data-goal'))
+      if (this.satisfied.has(idx)) {
+        row.classList.add('done')
+        const check = row.querySelector('.ds-goal-check')
+        if (check) check.textContent = '✓'
+      }
+    })
   }
 
   private undo(): void {
@@ -233,7 +354,6 @@ export class DesignStudio {
     const c = this.ctx
     c.fillStyle = '#ffffff'
     c.fillRect(0, 0, this.canvas.width, this.canvas.height)
-    // Grid chizig'i (faint)
     c.strokeStyle = '#f1f5f9'
     c.lineWidth = 1
     for (let x = 0; x < this.canvas.width; x += 40) {
@@ -252,43 +372,16 @@ export class DesignStudio {
     c.lineWidth = 1.5
     const r = 24
     if (p.shape === 'circle') {
-      c.beginPath(); c.arc(p.x, p.y, r, 0, Math.PI * 2)
-      c.fill(); c.stroke()
+      c.beginPath(); c.arc(p.x, p.y, r, 0, Math.PI * 2); c.fill(); c.stroke()
     } else if (p.shape === 'square') {
-      c.beginPath(); c.roundRect(p.x - r, p.y - r, r * 2, r * 2, 4)
-      c.fill(); c.stroke()
+      c.beginPath(); c.roundRect(p.x - r, p.y - r, r * 2, r * 2, 4); c.fill(); c.stroke()
     } else if (p.shape === 'triangle') {
       c.beginPath()
-      c.moveTo(p.x, p.y - r)
-      c.lineTo(p.x + r, p.y + r)
-      c.lineTo(p.x - r, p.y + r)
+      c.moveTo(p.x, p.y - r); c.lineTo(p.x + r, p.y + r); c.lineTo(p.x - r, p.y + r)
       c.closePath(); c.fill(); c.stroke()
     } else {
-      // rect
-      c.beginPath(); c.roundRect(p.x - r * 1.5, p.y - r * 0.65, r * 3, r * 1.3, 4)
-      c.fill(); c.stroke()
+      c.beginPath(); c.roundRect(p.x - r * 1.5, p.y - r * 0.65, r * 3, r * 1.3, 4); c.fill(); c.stroke()
     }
-  }
-
-  private submit(): void {
-    const quality = this.score()
-    this.close()
-    this.cb.onSubmit(quality)
-  }
-
-  private score(): number {
-    if (!this.brief || this.brief.targets.length === 0) return 0.5
-    let matched = 0
-    const usedHexes = new Set(this.placed.map((p) => p.hex.toLowerCase()))
-    for (const t of this.brief.targets) {
-      const colorMatch = usedHexes.has(t.color.hex.toLowerCase())
-      const shapeMatch = this.placed.some((p) => p.shape === t.shape)
-      if (colorMatch && shapeMatch) matched += 1
-      else if (colorMatch || shapeMatch) matched += 0.4
-    }
-    // Bonus: kompozitsiya (10+ element)
-    const bonus = this.placed.length >= 6 ? 0.15 : this.placed.length >= 3 ? 0.05 : 0
-    return Math.min(1, matched / this.brief.targets.length + bonus)
   }
 
   dispose(): void { this.root.remove() }

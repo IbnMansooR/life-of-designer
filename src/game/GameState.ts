@@ -49,6 +49,14 @@ export interface GameSettings {
   defaultSpeed: number // standart o'yin tezligi: 1 | 2 | 4
 }
 
+export interface DesignActionResult {
+  progress: number   // loyihaning yangilangan progressi 0..100
+  energy: number     // qolgan energiya 0..100
+  exhausted: boolean // juda charchadimi (davom etib bo'lmaydi)
+  done: boolean      // progress 100 ga yetdimi
+  gain: number       // shu amal qo'shgan progress (%)
+}
+
 export interface SerializedGame {
   version: number
   createdAt: string
@@ -323,20 +331,47 @@ export class GameState {
     return true
   }
 
-  /** Dizayn studiyasidan keyin loyihaga progress (sifat 0..1 ga bog'liq). */
-  submitDesignWork(id: string, quality: number): void {
+  /**
+   * Dizayn studiyasida bitta amal (shakl qo'yish) — loyiha progressini JONLI siljitadi.
+   * actionQuality 0..1: brief'ga qanchalik mos (1 = aniq mos shakl+rang).
+   * Har amal: kichik progress + vaqt + energiya/stress sarfi.
+   */
+  applyDesignAction(id: string, actionQuality: number): DesignActionResult {
     const job = this.activeProjects.find((j) => j.id === id)
-    if (!job) return
-    const base = Math.max(8, 16 + this.skills.design * 0.4 - job.difficulty * 2)
-    const gain = base * (0.5 + quality) // sifat 0 -> 0.5x, sifat 1 -> 1.5x
+    if (!job) return { progress: 0, energy: this.needs.energy, exhausted: true, done: false, gain: 0 }
+
+    // Allaqachon tugagan bo'lsa — energiya sarflamasdan qaytaramiz.
+    if (job.progress >= 100) {
+      return { progress: 100, energy: this.needs.energy, exhausted: false, done: true, gain: 0 }
+    }
+
+    // Energiya tugagan bo'lsa — ish bermaymiz (0 energiyada bepul grindni oldini oladi).
+    if (this.needs.energy < 2) {
+      return { progress: job.progress, energy: this.needs.energy, exhausted: true, done: false, gain: 0 }
+    }
+
+    // Har amal uchun asosiy ulush: mahorat oshiradi, qiyinlik kamaytiradi (~1.8–3.2%).
+    const base = Math.max(1.2, 2.2 + this.skills.design * 0.025 - job.difficulty * 0.3)
+    const gain = base * (0.35 + actionQuality * 1.15) // sifat 0 -> 0.35x, sifat 1 -> 1.5x
+    const before = job.progress
     job.progress = Math.min(100, job.progress + gain)
-    this.skills.design = clamp(this.skills.design + 1 + quality)
-    this.needs.energy = clamp(this.needs.energy - 15)
-    this.needs.stress = clamp(this.needs.stress + 9)
-    this.needs.hunger = clamp(this.needs.hunger + 10)
-    this.time.advance(150)
-    bus.emit(GameEvents.Toast, `Ishlading — sifat ${Math.round(quality * 100)}% · ${Math.round(job.progress)}%`)
+    const realGain = job.progress - before
+
+    // O'rtacha sifat (running average) — topshirishda mukofotga ta'sir qiladi.
+    job.quality = job.quality === undefined ? actionQuality : job.quality * 0.85 + actionQuality * 0.15
+
+    // Har amal narxi (bir sessiyaga ~25–30 amal).
+    this.needs.energy = clamp(this.needs.energy - 2)
+    this.needs.stress = clamp(this.needs.stress + 1)
+    this.needs.hunger = clamp(this.needs.hunger + 0.6)
+    this.skills.design = clamp(this.skills.design + 0.05) // mayda o'sish
+    this.time.advance(4)
+
+    const done = job.progress >= 100
+    const exhausted = this.needs.energy <= 3
     bus.emit(GameEvents.NeedsChanged, this.needs)
+    if (done) bus.emit(GameEvents.Toast, `✅ "${job.title}" tayyor — topshirishingiz mumkin!`)
+    return { progress: job.progress, energy: this.needs.energy, exhausted, done, gain: realGain }
   }
 
   /** Tugagan loyihani topshirish — pul, reputatsiya, portfolio, skill. */
@@ -350,12 +385,16 @@ export class GameState {
     }
     this.activeProjects.splice(idx, 1)
     this.completedProjects++
-    this.addMoney(job.budget)
-    this.reputation = clamp(this.reputation + 4 + job.difficulty * 3)
-    this.portfolio = clamp(this.portfolio + 2 + job.difficulty * 2)
+    // Sifatga qarab choychaqa (tip) — yaxshi ish ko'proq pul/obro' keltiradi.
+    const q = job.quality ?? 0.5
+    const tip = Math.round((job.budget * 0.15 * q) / 50_000) * 50_000
+    this.addMoney(job.budget + tip)
+    this.reputation = clamp(this.reputation + 4 + job.difficulty * 3 + Math.round(q * 3))
+    this.portfolio = clamp(this.portfolio + 2 + job.difficulty * 2 + Math.round(q * 2))
     this.skills.design = clamp(this.skills.design + 2)
     this.needs.mood = clamp(this.needs.mood + 8)
-    bus.emit(GameEvents.Toast, `✅ Topshirildi! +${formatSom(job.budget)} so'm`)
+    const tipMsg = tip > 0 ? ` (+${formatSom(tip)} choychaqa)` : ''
+    bus.emit(GameEvents.Toast, `✅ Topshirildi! +${formatSom(job.budget)} so'm${tipMsg} · sifat ${Math.round(q * 100)}%`)
     bus.emit(GameEvents.NeedsChanged, this.needs)
     this.checkAchievements()
   }

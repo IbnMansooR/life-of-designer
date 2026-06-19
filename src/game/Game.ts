@@ -68,13 +68,20 @@ export class Game {
       }
     })
     this.designStudio = new DesignStudio(root, {
-      onSubmit: (quality) => {
-        this.gs.submitDesignWork(this.workingProjectId, quality)
-        this.computer.open(this.gs)
-        this.computer.refresh()
+      onAction: (quality) => {
+        const r = this.gs.applyDesignAction(this.workingProjectId, quality)
+        this.hud.update(this.gs)
+        return r
+      },
+      onSatisfy: (targetIndex) => {
+        const job = this.gs.activeProjects.find((j) => j.id === this.workingProjectId)
+        if (!job) return
+        if (!job.satisfiedTargets) job.satisfiedTargets = []
+        if (!job.satisfiedTargets.includes(targetIndex)) job.satisfiedTargets.push(targetIndex)
       },
       onClose: () => {
         this.computer.open(this.gs)
+        this.computer.refresh()
       }
     })
     this.interactPrompt = new InteractPrompt(root)
@@ -236,8 +243,12 @@ export class Game {
       return
     }
     this.workingProjectId = id
+    const job = this.gs.activeProjects.find((j) => j.id === id)
+    if (!job) return
+    // Loyihaga barqaror TZ biriktiriladi — save/load orasida ham saqlanadi.
+    if (!job.brief) job.brief = makeBrief(type)
     this.computer.close()
-    this.designStudio.open(makeBrief(type))
+    this.designStudio.open(job.brief, job.progress, this.gs.needs.energy, job.satisfiedTargets ?? [])
   }
 
   private doSleep(): void {

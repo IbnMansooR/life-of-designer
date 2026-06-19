@@ -59,7 +59,7 @@ export class Launcher {
         el('button', { class: 'btn', text: 'Chiqish', on: { click: () => window.close() } })
       ]),
       this.settingsPanel,
-      el('div', { class: 'version-tag', text: 'v0.1.0 — Phase 17' })
+      el('div', { class: 'version-tag', text: 'v0.1.0 — Phase 18' })
     ])
     parent.appendChild(this.root)
   }
